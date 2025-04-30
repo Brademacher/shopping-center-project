@@ -104,14 +104,11 @@ class MallEnvironment:
 
     def visit_store(self, x, y, f):
         if not (0 <= f < self.floor and 0 <= y < self.width and 0 <= x < self.length):
-            print("Store visit out of bounds.")
             return
         if (x, y, f) in self.stores and (x, y, f) not in self.visited_stores:
             self.visited_stores.append((x, y, f))
-            print(f"Visited store #{len(self.visited_stores)} at ({x}, {y}, {f})")
         if self.goal_store_trigger_index is not None and len(self.visited_stores) > self.goal_store_trigger_index:
             self.goal_reached = True
-            print("🎯 GOAL REACHED!")
 
     def get_neighbors(self, x, y, f):
         neighbors = []
@@ -186,9 +183,22 @@ class MallEnvironment:
 
         env = cls(length=data["length"], width=data["width"], floor=data["floor"])
         env.grid = data["grid"]
-        env.stores = data["stores"]
+        env.stores = [tuple(s) for s in data["stores"]]
         env.obstacles = {tuple(o): True for o in data["obstacles"]}
-        env.elevators = data["elevators"]
-        env.escalators = data["escalators"]
+        env.elevators = {
+            label: {
+                "coords": tuple(info["coords"]),
+                "floors": info["floors"]
+            }
+            for label, info in data["elevators"].items()
+        }
+        env.escalators = {
+            label: {
+                "lower_coords": tuple(info["lower_coords"]),
+                "upper_coords": tuple(info["upper_coords"]),
+                "from_to": tuple(info["from_to"])
+            }
+            for label, info in data["escalators"].items()
+        }
         env.goal_store_trigger_index = data["goal_store_trigger_index"]
         return env

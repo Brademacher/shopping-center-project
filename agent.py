@@ -6,6 +6,8 @@ class MallAgent:
         self.position = start
         self.path = [start]
         self.cost = 0
+        self.step_count = 0
+        self.max_steps = 1000
         self.planner = planner
         self.planned_path = []
 
@@ -15,8 +17,10 @@ class MallAgent:
                 self.planned_path.pop(0)  # skip starting point
 
     def step(self):
-        if self.env.goal_reached:
+        if self.env.goal_reached or self.step_count > self.max_steps:
             return False
+
+        self.step_count += 1
 
         if self.planner and self.planned_path:
             x, y, f = self.planned_path.pop(0)
