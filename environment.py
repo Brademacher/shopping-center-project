@@ -74,7 +74,7 @@ class MallEnvironment:
         if (x, y, f) in self.stores and (x, y, f) not in self.visited_stores:
             self.visited_stores.append((x, y, f))
             print(f"Visited store #{len(self.visited_stores)} at ({x}, {y}, {f})")
-        if self.goal_trigger_index is not None and len(self.visited_stores) > self.goal_trigger_index:
+        if self.goal_store_trigger_index is not None and len(self.visited_stores) > self.goal_store_trigger_index:
             self.goal_reached = True
             print("🎯 GOAL REACHED!")
 
@@ -204,10 +204,30 @@ class MallEnvironment:
             "obstacles": list(self.obstacles.keys()),
             "elevators": self.elevators,
             "escalators": self.escalators,
-            "goal_trigger_index": self.goal_store_trigger_index,
+            "goal_store_trigger_index": self.goal_store_trigger_index,
         }
         with open(path, 'w') as f:
             json.dump(data, f, indent=2)
+    @classmethod
+    def from_json(cls, path):
+        with open(path, 'r') as f:
+            data = json.load(f)
+
+        env = cls(
+            length=data["length"],
+            width=data["width"],
+            floor=data["floor"]
+        )
+
+        # Overwrite generated grid and metadata with the saved version
+        env.grid = data["grid"]
+        env.stores = data["stores"]
+        env.obstacles = {tuple(o): True for o in data["obstacles"]}
+        env.elevators = data["elevators"]
+        env.escalators = data["escalators"]
+        env.goal_store_trigger_index = data["goal_store_trigger_index"]
+        return env
+
 # Testing the environment class #
 if __name__ == "__main__":
 
