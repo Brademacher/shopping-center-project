@@ -6,20 +6,28 @@ class MallAgent:
         self.position = start
         self.path = [start]
         self.cost = 0
-        self.planner = planner  # A* planner or None
-        self.planned_path = []  # Filled if planner is used
+        self.planner = planner
+        self.planned_path = []
+
+        if self.planner:
+            self.planned_path = self.planner.plan(env, self.position)
+            if self.planned_path:
+                self.planned_path.pop(0)  # skip starting point
 
     def step(self):
-        if self.planner:
-            if not self.planned_path:
-                self.planned_path = self.planner.plan(self.env, self.position)
-            if not self.planned_path:
-                return False  # No path found
-            next_move = self.planned_path.pop(0)
-            x, y, f = next_move
-            cost = 1  # or look up actual cost
+        if self.env.goal_reached:
+            return False
+
+        if self.planner and self.planned_path:
+            x, y, f = self.planned_path.pop(0)
+            # Find the cost of the move from neighbors
+            for nx, ny, nf, move_cost in self.env.get_neighbors(*self.position):
+                if (nx, ny, nf) == (x, y, f):
+                    cost = move_cost
+                    break
+            else:
+                cost = 1  # fallback if somehow not found
         else:
-            # Fallback: random
             neighbors = self.env.get_neighbors(*self.position)
             if not neighbors:
                 return False

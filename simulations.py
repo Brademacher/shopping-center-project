@@ -5,7 +5,7 @@ from environment import MallEnvironment
 os.makedirs("simulations", exist_ok=True)
 
 # Simulation parameters
-NUM_SIMULATIONS = 1000
+NUM_SIMULATIONS = 1
 GRID_SIZE = (10, 10, 3)
 NUM_STORES = 20
 NUM_OBSTACLES = 10
