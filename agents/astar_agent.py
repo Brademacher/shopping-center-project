@@ -1,44 +1,21 @@
-import random
+from algorithms.astar import AStarPlanner
 
 class AStarAgent:
-    def __init__(self, env, start=(0, 0, 0), planner=None):
-        self.env = env
-        self.position = start
-        self.path = [start]
-        self.cost = 0
-        self.step_count = 0
-        self.max_steps = 100000
-        self.planner = planner
-        self.planned_path = []
+    def __init__(self):
+        self.planner = AStarPlanner()
 
-        if self.planner:
-            self.planned_path = self.planner.plan(env, self.position)
-            if self.planned_path:
-                self.planned_path.pop(0)  # skip starting point
+    def run(self, env):
+        start = (0, 0, 0)                  # entrance
 
-    def step(self):
-        if self.env.goal_reached or self.step_count > self.max_steps:
-            return False
+        path, total_exp, false_visits = [], 0, 0
+        for store in env.stores:           # try every candidate
+            seg, seg_exp = self.planner.plan(env, start, store)
+            path += seg[1:]                # drop duplicate start
+            total_exp += seg_exp
+            start = store
 
-        self.step_count += 1
+            if env.has_item(store):        # <<< correct test
+                break                      #   item found
+            false_visits += 1
 
-        if self.planner and self.planned_path:
-            x, y, f = self.planned_path.pop(0)
-            # Find the cost of the move from neighbors
-            for nx, ny, nf, move_cost in self.env.get_neighbors(*self.position):
-                if (nx, ny, nf) == (x, y, f):
-                    cost = move_cost
-                    break
-            else:
-                cost = 1  # fallback if somehow not found
-        else:
-            neighbors = self.env.get_neighbors(*self.position)
-            if not neighbors:
-                return False
-            x, y, f, cost = random.choice(neighbors)
-
-        self.position = (x, y, f)
-        self.path.append(self.position)
-        self.cost += cost
-        self.env.visit_store(x, y, f)
-        return not self.env.goal_reached
+        return path, total_exp, false_visits
