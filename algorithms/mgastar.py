@@ -61,10 +61,6 @@ class MultiGoalAStarPlanner:
         return sorted_goals, expanded
 
 
-        # Sort results by cost
-        sorted_goals = sorted(reached_goals.values(), key=lambda x: x["cost"])
-        return sorted_goals, expanded
-
     def heuristic(self, node, goal_nodes):
         return min(abs(node.row - goal.row) + abs(node.column - goal.column) for goal in goal_nodes)
 
