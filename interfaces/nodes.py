@@ -3,10 +3,12 @@ from nodecomponents.neighbors import Neighbor
 
 class Node:
     
-    def __init__(self, row: int, column: int, floor: int = 0):
+    def __init__(self, row: int, column: int, f_number: int = 0, name: str = "", node_type: str = "path"):
         self.row = row
         self.column = column
-        self.floor = floor
+        self.f_number = f_number
+        self.name = name  # e.g., "Starbucks"
+        self.node_type = node_type  # e.g., "store", "elevator", "hallway"
         self.visited = False
         self.neighbors: List[Neighbor] = []
 
@@ -19,15 +21,39 @@ class Node:
 
     def get_neighbors(self) -> List[Neighbor]:
         return self.neighbors
-        
+    
+
+    ## For A* algorithm, comparison methods for the priority queue    
+    def __lt__(self, other):
+        return (self.row, self.column, self.f_number) < (other.row, other.column, other.f_number)
+    
+    def __eq__(self, other):
+        return (self.row, self.column, self.f_number) == (other.row, other.column, other.f_number)
+
+    def __hash__(self):
+        return hash((self.row, self.column, self.f_number))
 
 
 # TESTING PURPOSES ONLY #
 if __name__ == "__main__":
-    a = Node("A", 0, 0)
-    b = Node("B", 0, 1)
+    a = Node(row=0, column=0, name="A")
+    b = Node(row=0, column=1, name="B")
     
-    a.add_neighbor("right", b, weight=2.0)
+    a.add_neighbor("right", b)
 
-    print(f"{a.name}'s neighbor to the right: {a.neighbors[0].node.name}")
-    print(f"Edge weight: {a.neighbors[0].weight}")
+    print("\nEquality and hashing test:")
+    n1 = Node(row=1, column=2, f_number=0)
+    n2 = Node(row=1, column=2, f_number=0)
+    n3 = Node(row=2, column=2, f_number=0)
+
+    print("n1 == n2:", n1 == n2)             # True
+    print("n1 == n3:", n1 == n3)             # False
+    print("Hash of n1:", hash(n1))           # Same as n2
+    print("Hash of n2:", hash(n2))           # Same as n1
+    print("Hash of n3:", hash(n3))           # Different
+    print("n1 < n3:", n1 < n3)               # True (row 1 < row 2)
+
+    print("\nTesting set behavior:")
+    node_set = {n1, n2, n3}
+    for node in node_set:
+        print(f"Node at ({node.row}, {node.column}, floor {node.f_number})")

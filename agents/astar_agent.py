@@ -1,21 +1,10 @@
-from algorithms.astar import AStarPlanner
+from interfaces.agents import Agent
 
-class AStarAgent:
-    def __init__(self):
-        self.planner = AStarPlanner()
+class AStarAgent(Agent):
+    def __init__(self, planner):
+        super().__init__()
+        self.planner = planner
 
-    def run(self, env):
-        start = (0, 0, 0)                  # entrance
-
-        path, total_exp, false_visits = [], 0, 0
-        for store in env.stores:           # try every candidate
-            seg, seg_exp = self.planner.plan(env, start, store)
-            path += seg[1:]                # drop duplicate start
-            total_exp += seg_exp
-            start = store
-
-            if env.has_item(store):        # <<< correct test
-                break                      #   item found
-            false_visits += 1
-
-        return path, total_exp, false_visits
+    def run(self, env, start_node, goal_nodes):
+        goal = goal_nodes[0]
+        
