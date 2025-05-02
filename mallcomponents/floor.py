@@ -181,25 +181,24 @@ class Floor():
             print(row_str)
 
 
+# # TESTING PURPOSES ONLY #
+# if __name__ == "__main__":
+#     from mallcomponents.floor import Floor
+#     from nodecomponents.goal_logic import assign_goal_item_to_store
 
-# TESTING PURPOSES ONLY #
-if __name__ == "__main__":
-    from mallcomponents.floor import Floor
-    from nodecomponents.goal_logic import assign_goal_item_to_store
+#     floor = Floor(rows=10, columns=12, f_number=0)
 
-    floor = Floor(rows=10, columns=12, f_number=0)
+#     floor.place_agent_start()
+#     floor.place_stores(count=6)
+#     assign_goal_item_to_store(floor.stores)
+#     floor.place_obstacles(count=10)
 
-    floor.place_agent_start()
-    floor.place_stores(count=6)
-    assign_goal_item_to_store(floor.stores)
-    floor.place_obstacles(count=10)
+#     floor.print_floor_layout_with_obstacles()
 
-    floor.print_floor_layout_with_obstacles()
-
-    print("\nStore Summary:")
-    print(f"\nDEBUG: Store count = {len(floor.stores)}")
-    store_names = [s.name for s in floor.stores]
-    print(f"DEBUG: Unique store names = {set(store_names)}")
-    for store in floor.stores:
-        status = "GOAL ITEM" if store.has_goal_item else "empty"
-        print(f"- {store.name} at ({store.row},{store.column}) → {status}")
+#     print("\nStore Summary:")
+#     print(f"\nDEBUG: Store count = {len(floor.stores)}")
+#     store_names = [s.name for s in floor.stores]
+#     print(f"DEBUG: Unique store names = {set(store_names)}")
+#     for store in floor.stores:
+#         status = "GOAL ITEM" if store.has_goal_item else "empty"
+#         print(f"- {store.name} at ({store.row},{store.column}) → {status}")

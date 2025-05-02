@@ -2,13 +2,6 @@ from interfaces.agents import Agent
 from algorithms.astar import AStarPlanner
 from nodecomponents.stores import Store
 
-"""
-list of goal locations
-run A* to find path to closest store
-check store for item
-if not there, remove store from store list and rerun A*
-
-"""
 class AStarAgent(Agent):
     def __init__(self, planner):
         super().__init__()
