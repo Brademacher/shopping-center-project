@@ -5,11 +5,10 @@ class Mall:
         self.floors = [Floor(rows, columns, f_number=i) for i in range(num_floors)]
 
     def get_all_stores(self):
-        """Returns a flat list of all Store nodes across all floors."""
+        """Returns a list of all Store nodes across all floors."""
         return [store for floor in self.floors for store in floor.stores]
 
     def get_start_node(self):
-        """Returns the first non-None start node found (assumes one start point)."""
         for floor in self.floors:
             if floor.start_node:
                 return floor.start_node

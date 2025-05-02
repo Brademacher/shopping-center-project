@@ -29,12 +29,16 @@ class DStarLitePlanner:
 
     def update_vertex(self, u):
         if u != self.goal:
-            self.rhs[u] = min(
-                [
-                    neighbor.weight + self.g.get(neighbor.node, float('inf'))
-                    for neighbor in u.get_neighbors()
-                ]
-            )
+            if len(u.get_neighbors()) > 0:
+                self.rhs[u] = min(
+                    [
+
+                            neighbor.weight + self.g.get(neighbor.node, float('inf'))
+                            for neighbor in u.get_neighbors()
+                    ]
+                )
+            else:
+                None
         if u in [n for _, n in self.U]:
             self.U = [(k, n) for k, n in self.U if n != u]
             heapq.heapify(self.U)

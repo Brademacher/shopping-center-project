@@ -2,13 +2,14 @@ import random
 from collections import deque
 
 from interfaces.nodes import Node
+from mallcomponents.node_connectivity import * # type: ignore
 from nodecomponents.goal_logic import assign_goal_item_to_store
 from nodecomponents.stores import Store
 from nodecomponents.static_obstacles import Obstacle
 
 class Floor():
 
-    def __init__(self, rows: int, columns: int, f_number: int = 0, auto_connect: bool = True):
+    def __init__(self, rows: int, columns: int, f_number: int = 0):
         self.rows = rows
         self.columns = columns
         self.f_number = f_number
@@ -22,29 +23,9 @@ class Floor():
         self.grid = [[Node(i, j, self.f_number) for j in range(self.columns)] for i in range(self.rows)]
         self.build_perimeter_list()
 
-        if auto_connect:
-            self.connect_nodes()
-
-    def connect_nodes(self):
-        for i in range(self.rows):
-            for j in range(self.columns):
-                node = self.grid[i][j]
-
-                if i == 0:
-                    node.add_neighbor("down", self.grid[i + 1][j])  # top row
-                elif i == self.rows - 1:
-                    node.add_neighbor("up", self.grid[i - 1][j])    # bottom row
-                elif j == 0:
-                    node.add_neighbor("right", self.grid[i][j + 1]) # left column
-                elif j == self.columns - 1:
-                    node.add_neighbor("left", self.grid[i][j - 1])  # right column
-                else:
-                    # inner node — fully connected
-                    node.add_neighbor("up", self.grid[i - 1][j])
-                    node.add_neighbor("down", self.grid[i + 1][j])
-                    node.add_neighbor("left", self.grid[i][j - 1])
-                    node.add_neighbor("right", self.grid[i][j + 1])
+        connect_nodes(self.grid, self.rows, self.columns)
     
+
     def build_perimeter_list(self):
         """
         Populates self.perimeter with all Node objects along the outer edge of the grid.
@@ -58,20 +39,22 @@ class Floor():
             self.perimeter.append(self.grid[i][0])                  # left col
             self.perimeter.append(self.grid[i][self.columns - 1])   # right col
 
+
     def get_node(self, row: int, column: int) -> Node:
         if 0 <= row < self.rows and 0 <= column < self.columns:
             return self.grid[row][column]
         else:
             raise IndexError("Node coordinates out of bounds")
 
-    def place_stores(self, count: int):
 
+    def place_stores(self, count: int):
         valid_spots = [
             node for node in self.perimeter
             if node.node_type == "generic"
-            and not self.is_corner(node.row, node.column)
-            and any(n.direction == self.get_inward_direction(node.row, node.column) for n in node.get_neighbors())
-        ]       
+            and not is_corner(node.row, node.column, self.rows, self.columns)
+            and any(n.direction == get_inward_direction(node.row, node.column, self.rows, self.columns)
+                    for n in node.get_neighbors())
+        ]
         random.shuffle(valid_spots)
 
         for index, node in enumerate(valid_spots[:count]):
@@ -79,29 +62,27 @@ class Floor():
             self.grid[node.row][node.column] = store
             self.stores.append(store)
 
-        # 💥 Important: Rebuild neighbor links
-        self.connect_nodes()
+        connect_nodes(self.grid, self.rows, self.columns)
+
 
     def place_agent_start(self):
-        """
-        Randomly selects a 'generic' node on the perimeter to use as the agent's starting point.
-        """
         valid_spots = [
             node for node in self.perimeter
             if node.node_type == "generic"
-            and not self.is_corner(node.row, node.column)
-            and any(n.direction == self.get_inward_direction(node.row, node.column) for n in node.get_neighbors())
+            and not is_corner(node.row, node.column, self.rows, self.columns)
+            and any(n.direction == get_inward_direction(node.row, node.column, self.rows, self.columns)
+                    for n in node.get_neighbors())
         ]
         random.shuffle(valid_spots)
 
         if not valid_spots:
             raise RuntimeError("No valid perimeter node for agent start.")
 
-        # Reconnect inward-facing neighbor in case of disconnection
         self.start_node = valid_spots[0]
         self.start_node.node_type = "start"
-        self.add_inward_neighbor(self.start_node)
+        add_inward_neighbor(self.grid, self.start_node, self.rows, self.columns)
         print(f"Agent start node set to ({self.start_node.row}, {self.start_node.column})")
+
 
     def place_obstacles(self, count: int):
         """
@@ -111,17 +92,17 @@ class Floor():
         - Cannot be directly in front of a store or start
         - Must not fully block access to all goals or the agent
         """
-
-       # Gather viable candidate nodes
-        viable_nodes = [
-            node for row in self.grid for node in row
-            if node.node_type == "generic" and node not in self.perimeter
-        ]
+        # Gather viable candidate nodes
+        viable_nodes = []
+        for row in self.grid:
+            for node in row:
+                if node.node_type == "generic" and node not in self.perimeter:
+                    viable_nodes.append(node)
 
         # Filter out nodes that block store/start entries
         viable_nodes = [
             node for node in viable_nodes
-            if not is_blocking_entry(node, self.get_inward_direction)
+            if not is_blocking_entry(node, lambda r, c: get_inward_direction(r, c, self.rows, self.columns))
         ]
 
         random.shuffle(viable_nodes)
@@ -130,81 +111,47 @@ class Floor():
         for node in viable_nodes:
             if placed >= count:
                 break
-
-            # Temporarily place obstacle
-            original = self.grid[node.row][node.column]
-            self.grid[node.row][node.column] = Obstacle(node.row, node.column, self.f_number)
-
-            if self.is_fully_connected():
+            if self.place_single_obstacle(node.row, node.column):
                 placed += 1
-            else:
-                self.grid[node.row][node.column] = original  # Revert if it breaks connectivity
 
-    def add_inward_neighbor(self, node):
-        """
-        Adds the inward-facing neighbor to a perimeter node.
-        Assumes the node is on the perimeter and not in a corner.
-        """
-        inward_dir = self.get_inward_direction(node.row, node.column)
-        if not inward_dir:
-            return  # Skip if it's a corner or invalid position
+        return placed
 
-        r, c = node.row, node.column
-        neighbor = (
-            self.grid[r + 1][c] if inward_dir == "down" else
-            self.grid[r - 1][c] if inward_dir == "up" else
-            self.grid[r][c + 1] if inward_dir == "right" else
-            self.grid[r][c - 1]
-        )
-        node.neighbors.clear()  # Optional: ensure no old neighbors remain
-        node.add_neighbor(inward_dir, neighbor)
 
-    def get_inward_direction(self, row, col):
-        if row == 0: return "down"
-        if row == self.rows - 1: return "up"
-        if col == 0: return "right"
-        if col == self.columns - 1: return "left"
-        return None
-    
-    def is_corner(self, row, col):
-        return (
-            (row == 0 and col == 0) or
-            (row == 0 and col == self.columns - 1) or
-            (row == self.rows - 1 and col == 0) or
-            (row == self.rows - 1 and col == self.columns - 1)
-        )
-    
-    def is_fully_connected(self):
-        """
-        Uses BFS to ensure all stores are reachable from the start node.
-        Returns True if all are reachable, False otherwise.
-        """
-        if not self.start_node or not self.stores:
-            return True  # Nothing to validate
+    def place_single_obstacle(self, row: int, column: int):
+                # Temporarily place obstacle
+        original = self.grid[row][column]
+        obstacle = Obstacle(row, column, self.f_number)
+        self.grid[row][column] = obstacle
 
-        visited = set()
-        queue = deque([self.start_node])
-        visited.add((self.start_node.row, self.start_node.column, self.start_node.f_number))
+        # Remove this node from its neighbors' neighbor lists (outgoing edges)
+        for neighbor_link in original.get_neighbors():
+            neighbor = neighbor_link.node
+            reverse_dir = {
+                "up": "down", "down": "up",
+                "left": "right", "right": "left"
+            }.get(neighbor_link.direction)
+            if reverse_dir:
+                neighbor.remove_neighbor(reverse_dir)
+                neighbor.add_neighbor(reverse_dir, obstacle)
 
-        while queue:
-            current = queue.popleft()
-
-            for neighbor_link in current.get_neighbors():
+        # Check connectivity
+        if is_fully_connected(self.start_node, self.stores, self.grid):
+            return True  # Obstacle placement is valid
+        else:
+            # Revert obstacle placement and restore neighbor links
+            for neighbor_link in original.get_neighbors():
                 neighbor = neighbor_link.node
-                key = (neighbor.row, neighbor.column, neighbor.f_number)
+                reverse_dir = {
+                    "up": "down", "down": "up",
+                    "left": "right", "right": "left"
+                }.get(neighbor_link.direction)
+                if reverse_dir:
+                    neighbor.remove_neighbor(reverse_dir)
+                    neighbor.add_neighbor(reverse_dir, original)
+            self.grid[row][column] = original 
+            return False  # Obstacle placement is invalid
 
-                if key not in visited and neighbor.node_type != "obstacle":
-                    visited.add(key)
-                    queue.append(neighbor)
 
-        # Final check
-        for store in self.stores:
-            key = (store.row, store.column, store.f_number)
-            if key not in visited:
-                return False
-
-        return True
-    
     def print_floor_layout_with_obstacles(self, path_nodes=None):
         """
         Prints the floor with agent path included.
@@ -234,21 +181,6 @@ class Floor():
             print(row_str)
 
 
-    
-def is_blocking_entry(node, inward_direction_func):
-    """
-    Checks if a node would block entry to a store or start node by occupying the cell
-    directly in front of its inward-facing neighbor.
-    """
-    for neighbor_link in node.get_neighbors():
-        neighbor = neighbor_link.node
-        direction = neighbor_link.direction
-
-        if neighbor.node_type in ("store", "start"):
-            inward = inward_direction_func(neighbor.row, neighbor.column)
-            if direction == inward:
-                return True
-    return False
 
 # TESTING PURPOSES ONLY #
 if __name__ == "__main__":
