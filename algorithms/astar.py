@@ -1,5 +1,9 @@
 import heapq
 
+"""
+eventually need to change A* To find closest store from list of stores
+"""
+
 class AStarPlanner:
     def __init__(self):
         pass

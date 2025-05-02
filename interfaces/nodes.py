@@ -3,7 +3,7 @@ from nodecomponents.neighbors import Neighbor
 
 class Node:
     
-    def __init__(self, row: int, column: int, f_number: int = 0, name: str = "", node_type: str = "path"):
+    def __init__(self, row: int, column: int, f_number: int = 0, name: str = "", node_type: str = "generic"):
         self.row = row
         self.column = column
         self.f_number = f_number
@@ -55,5 +55,5 @@ if __name__ == "__main__":
 
     print("\nTesting set behavior:")
     node_set = {n1, n2, n3}
-    for node in node_set:
+    for node in sorted(node_set):
         print(f"Node at ({node.row}, {node.column}, floor {node.f_number})")

@@ -1,16 +1,24 @@
-from algorithms.mgastar import MultiGoalAStarPlanner
+from interfaces.agents import Agent
 
-class MultiGoalAStarAgent:
-    def __init__(self):
-        self.planner = MultiGoalAStarPlanner()
+class MultiGoalAStarAgent(Agent):
+    def __init__(self, planner):
+        super().__init__()
+        self.planner = planner
 
-    def run(self, env):
-        start = (0, 0, 0)
+    def run(self, env, start_node, goal_nodes: list):
+        sorted_goals, expanded = self.planner.plan(env, start_node, goal_nodes)
 
-        path, exp = self.planner.plan(env, start, env.stores)
+        for result in sorted_goals:
+            goal = result["goal"]
+            path = result["path"]
 
-        # Determine how many stores appear on the final path
-        visited = [s for s in env.stores if s in path]
-        false_visits = max(0, len(visited) - 1)          # last one has the item
+            print(f"Now heading to: {goal.name} at ({goal.row},{goal.column})")
+            print(f"Path leads to: ({path[-1].row},{path[-1].column})")
+            print(f"Target store is: ({goal.row},{goal.column})")
+            print(f"Has goal item? {'Yes' if goal.has_goal_item else 'No'}")
 
-        return path, exp, false_visits
+            if goal.has_goal_item:
+                return path, expanded
+
+        print("WARNING: No reachable store had the goal item.")
+        return None  # No path to correct goal
