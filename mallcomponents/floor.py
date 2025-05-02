@@ -1,4 +1,6 @@
 import random
+from collections import deque
+
 from interfaces.nodes import Node
 from nodecomponents.goal_logic import assign_goal_item_to_store
 from nodecomponents.stores import Store
@@ -77,10 +79,6 @@ class Floor():
             self.grid[node.row][node.column] = store
             self.stores.append(store)
 
-            self.grid[node.row][node.column] = store
-            self.stores.append(store)
-            self.add_inward_neighbor(store)
-
         # 💥 Important: Rebuild neighbor links
         self.connect_nodes()
 
@@ -99,14 +97,48 @@ class Floor():
         if not valid_spots:
             raise RuntimeError("No valid perimeter node for agent start.")
 
-        self.start_node = valid_spots[0]
-        self.start_node.node_type = "start"
-        print(f"Agent start node set to ({self.start_node.row}, {self.start_node.column})")
-
         # Reconnect inward-facing neighbor in case of disconnection
         self.start_node = valid_spots[0]
         self.start_node.node_type = "start"
         self.add_inward_neighbor(self.start_node)
+        print(f"Agent start node set to ({self.start_node.row}, {self.start_node.column})")
+
+    def place_obstacles(self, count: int):
+        """
+        Randomly places static obstacles that block movement.
+        Constraints:
+        - Cannot be on the perimeter
+        - Cannot be directly in front of a store or start
+        - Must not fully block access to all goals or the agent
+        """
+
+       # Gather viable candidate nodes
+        viable_nodes = [
+            node for row in self.grid for node in row
+            if node.node_type == "generic" and node not in self.perimeter
+        ]
+
+        # Filter out nodes that block store/start entries
+        viable_nodes = [
+            node for node in viable_nodes
+            if not is_blocking_entry(node, self.get_inward_direction)
+        ]
+
+        random.shuffle(viable_nodes)
+        placed = 0
+
+        for node in viable_nodes:
+            if placed >= count:
+                break
+
+            # Temporarily place obstacle
+            original = self.grid[node.row][node.column]
+            self.grid[node.row][node.column] = Obstacle(node.row, node.column, self.f_number)
+
+            if self.is_fully_connected():
+                placed += 1
+            else:
+                self.grid[node.row][node.column] = original  # Revert if it breaks connectivity
 
     def add_inward_neighbor(self, node):
         """
@@ -141,32 +173,101 @@ class Floor():
             (row == self.rows - 1 and col == 0) or
             (row == self.rows - 1 and col == self.columns - 1)
         )
+    
+    def is_fully_connected(self):
+        """
+        Uses BFS to ensure all stores are reachable from the start node.
+        Returns True if all are reachable, False otherwise.
+        """
+        if not self.start_node or not self.stores:
+            return True  # Nothing to validate
 
+        visited = set()
+        queue = deque([self.start_node])
+        visited.add((self.start_node.row, self.start_node.column, self.start_node.f_number))
+
+        while queue:
+            current = queue.popleft()
+
+            for neighbor_link in current.get_neighbors():
+                neighbor = neighbor_link.node
+                key = (neighbor.row, neighbor.column, neighbor.f_number)
+
+                if key not in visited and neighbor.node_type != "obstacle":
+                    visited.add(key)
+                    queue.append(neighbor)
+
+        # Final check
+        for store in self.stores:
+            key = (store.row, store.column, store.f_number)
+            if key not in visited:
+                return False
+
+        return True
+    
+    def print_floor_layout_with_obstacles(self, path_nodes=None):
+        """
+        Prints the floor with agent path included.
+        path_nodes: optional list of nodes the agent path includes.
+        """
+        path_coords = set((n.row, n.column, n.f_number) for n in path_nodes) if path_nodes else set()
+
+        print("\nFloor Layout with Obstacles:\n")
+        for row in self.grid:
+            row_str = ""
+            for node in row:
+                coord = (node.row, node.column, node.f_number)
+                if node == self.start_node:
+                    row_str += "[ A ]"
+                elif coord in path_coords:
+                    row_str += "[ * ]"
+                elif node.node_type == "store" and getattr(node, "has_goal_item", False):
+                    row_str += "[ G ]"
+                elif node.node_type == "store":
+                    row_str += "[ s ]"
+                elif node.node_type == "obstacle":
+                    row_str += "[ o ]"
+                elif node.node_type == "generic":
+                    row_str += "[   ]"
+                else:
+                    row_str += "[ ? ]"
+            print(row_str)
+
+
+    
+def is_blocking_entry(node, inward_direction_func):
+    """
+    Checks if a node would block entry to a store or start node by occupying the cell
+    directly in front of its inward-facing neighbor.
+    """
+    for neighbor_link in node.get_neighbors():
+        neighbor = neighbor_link.node
+        direction = neighbor_link.direction
+
+        if neighbor.node_type in ("store", "start"):
+            inward = inward_direction_func(neighbor.row, neighbor.column)
+            if direction == inward:
+                return True
+    return False
 
 # TESTING PURPOSES ONLY #
 if __name__ == "__main__":
+    from mallcomponents.floor import Floor
+    from nodecomponents.goal_logic import assign_goal_item_to_store
 
-    floor = Floor(rows=6, columns=8, f_number=0)
+    floor = Floor(rows=10, columns=12, f_number=0)
+
     floor.place_agent_start()
-    floor.place_stores(count=5)
+    floor.place_stores(count=6)
     assign_goal_item_to_store(floor.stores)
+    floor.place_obstacles(count=10)
 
-    print("\nFloor Layout:\n")
-    for row in floor.grid:
-        row_str = ""
-        for node in row:
-            match node.node_type:
-                case "generic":
-                    row_str += "[   ]"
-                case "store":
-                    row_str += "[ G ]" if node.has_goal_item else "[ s ]"
-                case "start":
-                    row_str += "[ A ]"
-                case _:
-                    row_str += "[ ? ]"
-        print(row_str)
+    floor.print_floor_layout_with_obstacles()
 
     print("\nStore Summary:")
+    print(f"\nDEBUG: Store count = {len(floor.stores)}")
+    store_names = [s.name for s in floor.stores]
+    print(f"DEBUG: Unique store names = {set(store_names)}")
     for store in floor.stores:
         status = "GOAL ITEM" if store.has_goal_item else "empty"
         print(f"- {store.name} at ({store.row},{store.column}) → {status}")

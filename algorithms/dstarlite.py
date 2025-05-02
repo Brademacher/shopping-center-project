@@ -62,16 +62,22 @@ class DStarLitePlanner:
         self.initialize(start_node, goal_node)
         self.compute_shortest_path()
 
-        # Reconstruct path from start to goal
+        return self.reconstruct_path(start_node, goal_node)
+
+    def reconstruct_path(self, start_node, goal_node):
+        path = [start_node]
         current = start_node
-        path = [current]
 
         while current != goal_node:
             neighbors = current.get_neighbors()
-            if not neighbors:
-                return []  # no path found
+            valid_neighbors = [
+                n for n in neighbors if self.g.get(n.node, float('inf')) != float('inf')
+            ]
+            if not valid_neighbors:
+                return []  # No valid next step
+
             current = min(
-                neighbors,
+                valid_neighbors,
                 key=lambda n: self.g.get(n.node, float('inf')) + n.weight
             ).node
             path.append(current)

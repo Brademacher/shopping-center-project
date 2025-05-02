@@ -1,45 +1,24 @@
+# tests/test_astar_run.py
 from mallcomponents.floor import Floor
+from nodecomponents.goal_logic import assign_goal_item_to_store
 from agents.astar_agent import AStarAgent
 from algorithms.astar import AStarPlanner
-from nodecomponents.goal_logic import assign_goal_item_to_store
 
-# Build and set up the floor
-floor = Floor(rows=6, columns=8)
-floor.place_stores(count=5)
+floor = Floor(rows=10, columns=12, f_number=0)
 floor.place_agent_start()
+floor.place_stores(count=6)
 assign_goal_item_to_store(floor.stores)
+floor.place_obstacles(count=10)
 
-# Run A* agent
-planner = AStarPlanner()
-agent = AStarAgent(planner)
-start = floor.start_node
-path, expanded = agent.run(env=floor, start_node=start, goal_nodes=floor.stores)
+agent = AStarAgent(planner=AStarPlanner())
+path, expanded = agent.run(env=floor, start_node=floor.start_node, goal_nodes=floor.stores)
 
-# Display floor layout and path
-print("\nFloor Layout with Agent Path:\n")
+floor.print_floor_layout_with_obstacles(path_nodes=path)
 
-path_set = set(path)  # for fast lookup
-
-for row in floor.grid:
-    row_str = ""
-    for node in row:
-        if node in path_set:
-            row_str += "[ * ]"  # node is part of the A* path
-        elif node.node_type == "start":
-            row_str += "[ A ]"
-        elif node.node_type == "store":
-            row_str += "[ G ]" if node.has_goal_item else "[ s ]"
-        elif node.node_type == "generic":
-            row_str += "[   ]"
-        else:
-            row_str += "[ ? ]"
-    print(row_str)
-
-# Display results
-print(f"\nA* Agent Results:")
+print("\nA* Agent Results:")
 print(f"Nodes expanded: {expanded}")
 print(f"Path length: {len(path)}")
-print("Path:", [(n.row, n.column) for n in path])
-print("Final path ends at:", (path[-1].row, path[-1].column))
-print("Goal store is at:  ", (next(s for s in floor.stores if s.has_goal_item).row,
-                               next(s for s in floor.stores if s.has_goal_item).column))
+print(f"Path: {[ (n.row, n.column) for n in path ]}")
+print(f"Final path ends at: ({path[-1].row},{path[-1].column})")
+print(f"Goal store is at:   ({[s.row for s in floor.stores if s.has_goal_item][0]},"
+      f"{[s.column for s in floor.stores if s.has_goal_item][0]})")
