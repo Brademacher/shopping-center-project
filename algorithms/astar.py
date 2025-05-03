@@ -5,8 +5,8 @@ class AStarPlanner:
         pass
 
     def plan(self, env, start_node, goal_node):
-        priority_queue = []  # ← open_set renamed
-        heapq.heappush(priority_queue, (0, start_node))
+        open_set = []  
+        heapq.heappush(open_set, (0, start_node))
 
         came_from = {}
         g_score = {start_node: 0}
@@ -15,8 +15,8 @@ class AStarPlanner:
         visited_nodes = set()  # ← closed_set renamed
         expanded = 0
 
-        while priority_queue:
-            _, current = heapq.heappop(priority_queue)
+        while open_set:
+            _, current = heapq.heappop(open_set)
             expanded += 1
 
             if current == goal_node:
@@ -37,7 +37,7 @@ class AStarPlanner:
                     came_from[neighbor] = current
                     g_score[neighbor] = tentative_g
                     f_score[neighbor] = tentative_g + self.heuristic(neighbor, goal_node)
-                    heapq.heappush(priority_queue, (f_score[neighbor], neighbor))
+                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
 
         return [], expanded  # no path found
 

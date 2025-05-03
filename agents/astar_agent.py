@@ -20,7 +20,7 @@ class AStarAgent(Agent):
                 key=lambda s: abs(current.row - s.row) + abs(current.column - s.column)
             )
             target = remaining_stores[0]
-            print(f"Now heading to: {target.name} at ({target.row},{target.column})")
+            # print(f"Now heading to: {target.name} at ({target.row},{target.column})")
 
             # Step 2: A* to target
             path, expanded = self.planner.plan(env, current, target)
@@ -39,9 +39,9 @@ class AStarAgent(Agent):
             else:
                 path_taken.extend(path)
 
-            print(f"Path leads to: ({path[-1].row},{path[-1].column})")
+            # print(f"Path leads to: ({path[-1].row},{path[-1].column})")
             print(f"Target store is: ({target.row},{target.column})")
-            print(f"Has goal item? {target.has_goal_item}")
+            # print(f"Has goal item? {target.has_goal_item}")
 
             if target.has_goal_item:
                 return path_taken, total_expanded

@@ -5,7 +5,6 @@ class MultiGoalAStarPlanner:
         pass
 
     def plan(self, env, start_node, goal_nodes):
-        import heapq
 
         open_set = []
         heapq.heappush(open_set, (0, start_node))
@@ -38,7 +37,8 @@ class MultiGoalAStarPlanner:
                     reached_goals[matched_goal] = {
                         "goal": matched_goal,
                         "path": path,
-                        "cost": g_score[current]
+                        "cost": g_score[current],
+                        "expanded": expanded
                     }
 
             for neighbor_link in current.get_neighbors():

@@ -30,7 +30,7 @@ class Node:
         return (self.row, self.column, self.f_number) == (other.row, other.column, other.f_number)
 
     def __hash__(self):
-        return hash((self.row, self.column, self.f_number))
+        return hash((self.row, self.column, getattr(self, 'f_number', 0)))
 
 
 # TESTING PURPOSES ONLY #

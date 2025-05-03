@@ -19,7 +19,6 @@ floor.print_floor_layout_with_obstacles(path_nodes=path)
 print("\nA* Agent Results:")
 print(f"Nodes expanded: {expanded}")
 print(f"Path length: {len(path)}")
-print(f"Path: {[ (n.row, n.column) for n in path ]}")
 if path:
     print(f"Final path ends at: ({path[-1].row},{path[-1].column})")
 else:

@@ -8,16 +8,35 @@ class DStarLitePlanner:
         self.U = []    # priority queue
         self.start = None
         self.goal = None
+        self.total_expanded = 0
 
     def initialize(self, start_node, goal_node):
         self.start = start_node
         self.goal = goal_node
+        self.total_expanded = 0
 
         self.rhs[goal_node] = 0
         self.g[goal_node] = float('inf')
         self.g[start_node] = float('inf')
         self.rhs[start_node] = float('inf')
 
+        heapq.heappush(self.U, (self.calculate_key(goal_node), goal_node))
+        # starting new path from current position to new goal
+        self.start = start_node
+        self.goal = goal_node
+        self.total_expanded = 0
+
+        # clear previous run data
+        self.U.clear()
+        self.rhs.clear()
+        self.g.clear()
+        self.km = 0
+
+        # Use with this goal
+        self.rhs[goal_node] = 0
+        self.g[goal_node] = float('inf')
+        self.g[start_node] = float('inf')
+        self.rhs[start_node] = float('inf')
         heapq.heappush(self.U, (self.calculate_key(goal_node), goal_node))
 
     def calculate_key(self, node):
@@ -32,7 +51,6 @@ class DStarLitePlanner:
             if len(u.get_neighbors()) > 0:
                 self.rhs[u] = min(
                     [
-
                             neighbor.weight + self.g.get(neighbor.node, float('inf'))
                             for neighbor in u.get_neighbors()
                     ]
@@ -47,6 +65,7 @@ class DStarLitePlanner:
 
     def compute_shortest_path(self):
         while self.U:
+            self.total_expanded += 1
             k_old, u = heapq.heappop(self.U)
             k_new = self.calculate_key(u)
 
@@ -66,7 +85,8 @@ class DStarLitePlanner:
         self.initialize(start_node, goal_node)
         self.compute_shortest_path()
 
-        return self.reconstruct_path(start_node, goal_node)
+        path = self.reconstruct_path(start_node, goal_node)
+        return path, self.total_expanded
 
     def reconstruct_path(self, start_node, goal_node):
         path = [start_node]
