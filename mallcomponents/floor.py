@@ -164,16 +164,16 @@ class Floor():
             row_str = ""
             for node in row:
                 coord = (node.row, node.column, node.f_number)
-                if node == self.start_node:
+                if self.start_node and node == self.start_node:
                     row_str += "[ A ]"
                 elif coord in path_coords:
                     row_str += "[ * ]"
                 elif node.node_type == "store" and getattr(node, "has_goal_item", False):
                     row_str += "[ G ]"
                 elif node.node_type == "store":
-                    row_str += "[ s ]"
+                    row_str += "[ S ]"
                 elif node.node_type == "obstacle":
-                    row_str += "[ o ]"
+                    row_str += "[XXX]"
                 elif node.node_type == "generic":
                     row_str += "[   ]"
                 else:
@@ -183,9 +183,6 @@ class Floor():
 
 # # TESTING PURPOSES ONLY #
 # if __name__ == "__main__":
-#     from mallcomponents.floor import Floor
-#     from nodecomponents.goal_logic import assign_goal_item_to_store
-
 #     floor = Floor(rows=10, columns=12, f_number=0)
 
 #     floor.place_agent_start()

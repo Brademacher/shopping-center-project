@@ -9,7 +9,7 @@ floor.place_agent_start()
 floor.place_stores(count=6)
 assign_goal_item_to_store(floor.stores)
 placed = floor.place_obstacles(count=10)
-print(f"Placed {placed} out of 10 obstacles.")
+print(f"Placed {placed} out of MGA* obstacles.")
 
 agent = MultiGoalAStarAgent(planner=MultiGoalAStarPlanner())
 result = agent.run(env=floor, start_node=floor.start_node, goal_nodes=floor.stores)
