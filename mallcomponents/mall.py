@@ -1,5 +1,6 @@
 import random
 from mallcomponents.floor import Floor
+from nodecomponents.goal_logic import assign_goal_item_to_store
 
 class Mall:
     def __init__(self, num_floors: int, rows: int, columns: int, 
@@ -39,37 +40,48 @@ class Mall:
         """Returns a list of all Store nodes across all floors."""
         return [store for floor in self.floors for store in floor.stores]
 
-    def get_obstacle_placement_count(self):
+    def get_obstacle_placement_count(self, floor: Floor):
         """"Determines the number of obstacles to place on each floor."""
+
+        viable_node_count = self.nodes_per_floor - len(floor.perimeter)  # Exclude perimeter nodes
+
         if self.obstacles > 0:
             return self.obstacles
         elif self.obstacle_density > 0:
-            return int(self.nodes_per_floor * self.obstacle_density)
+            return int(viable_node_count * self.obstacle_density)
         else:
-            return int(self.nodes_per_floor * 0.5)
-        # Default to 50% of the floor if no specific count or density is provided
+            return int(viable_node_count * 0.3)
+        # Default to 30% of the viable floor nodes if no specific count or density is provided
 
     def get_store_placement_count(self, floor: Floor):
         """Determines the number of stores to place on each floor."""
 
         perimeter_size = len(floor.perimeter)
+
         if self.stores > 0:
             return self.stores
         elif self.store_density > 0:
             return int(perimeter_size * self.store_density)
         else:
             return int(perimeter_size * 0.2)
-        # Default to 10% of the floor if no specific count or density is provided
+        # Default to 20% of the floor if no specific count or density is provided
 
     def populate_floors(self):
         for floor in self.floors:
             store_count = self.get_store_placement_count(floor)
-            obstacle_count = self.get_obstacle_placement_count()
+            obstacle_count = self.get_obstacle_placement_count(floor)
             floor.place_stores(count=store_count)
 
         ###### Temporary: Place obstacles only on agent start floor ######
             if floor.f_number == self.agent_start_floor: 
                 floor.place_obstacles(count=obstacle_count)
+
+    def run_mall_setup(self):
+        """
+        Builds the entire mall layout, including floors, stores, and obstacles.
+        """
+        self.populate_floors()
+        assign_goal_item_to_store(self.get_all_stores())
 
     def print_mall_layout(self):
         """
@@ -90,9 +102,7 @@ if __name__ == "__main__":
         num_floors=3,
         rows=10,
         columns=12,
-        store_density=0.15,         # ← about 15% of perimeter nodes
-        obstacle_density=0.12       # ← about 12% of total nodes
     )
 
-    mall.populate_floors()
+    mall.run_mall_setup()
     mall.print_mall_layout()
