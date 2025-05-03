@@ -1,11 +1,16 @@
 import random
 from mallcomponents.floor import Floor
+from mallcomponents.node_connectivity import connect_nodes, is_corner, get_inward_direction
+from nodecomponents.elevators import Elevator
+from nodecomponents.stairs import Stairs
 from nodecomponents.goal_logic import assign_goal_item_to_store
 
 class Mall:
     def __init__(self, num_floors: int, rows: int, columns: int, 
                 stores_per_floor: int = 0, obstacles_per_floor: int = 0,
-                store_density: float = 0.0, obstacle_density: float = 0.0):
+                store_density: float = 0.0, obstacle_density: float = 0.0,
+                num_elevators: int = 0, num_stairs: int = 0,
+                elevator_density: float = 0.0, stairs_density: float = 0.0):
         
         self.num_floors = num_floors
         self.rows = rows
@@ -20,11 +25,14 @@ class Mall:
         self.obstacles = obstacles_per_floor
         self.obstacle_density = obstacle_density
 
+        self.num_elevators = num_elevators
+        self.elevator_density = elevator_density
+
+        self.num_stairs = num_stairs
+        self.stairs_density = stairs_density
+
         self.floors = []
         self.agent_start_floor = random.randint(0, num_floors - 1)
-
-        self.build_base_floors()
-        self.place_agent()
     
     def build_base_floors(self):
         """Builds the base floors of the mall."""
@@ -36,22 +44,66 @@ class Mall:
         """Places the agent on a random floor."""
         self.floors[self.agent_start_floor].place_agent_start()
 
+    def get_elevator_placement_count(self, floor: Floor):
+        """Determines the number of elevators to place in mall."""
+
+        perimeter_size = len(floor.perimeter)
+
+        if self.num_elevators > 0:
+            return self.num_elevators
+        elif self.elevator_density > 0:
+            return int(perimeter_size * self.elevator_density)
+        else:
+            return int(perimeter_size * 0.05)
+        # Default to 5% of the perimeter if no specific count or density is provided
+
+    def place_elevators(self):
+        """
+        Places elevators at shared (row, col) perimeter locations on all floors.
+        """
+        base_floor = self.floors[0]
+        valid_nodes = []
+
+        # Find perimeter (row, col) positions that are valid on ALL floors
+        for node in base_floor.perimeter:
+            row, column = node.row, node.column
+            if is_corner(row, column, self.rows, self.columns):
+                continue
+
+            if all(floor.grid[row][column].node_type == "generic" for floor in self.floors):
+                valid_nodes.append((row, column))
+
+        # Determine how many elevators to place using your helper
+        elevator_count = self.get_elevator_placement_count(base_floor)
+        random.shuffle(valid_nodes)
+        selected_nodes = valid_nodes[:elevator_count]
+
+        for i, (e_row, e_column) in enumerate(selected_nodes):
+            for floor in self.floors:
+                elevator = Elevator(row=e_row, column=e_column, f_number=floor.f_number)
+                floor.grid[e_row][e_column] = elevator
+                floor.elevators.append(elevator)
+
+                floor.build_perimeter_list()
+
+        print(f"Placed {len(selected_nodes)} elevators at coordinates: {selected_nodes}")
+
+    def get_stairs_placement_count(self, floor: Floor):
+        """Determines the number of stairs to place in mall."""
+
+        perimeter_size = len(floor.perimeter)
+
+        if self.num_stairs > 0:
+            return self.num_stairs
+        elif self.stairs_density > 0:
+            return int(perimeter_size * self.stairs_density)
+        else:
+            return int(perimeter_size * 0.05)
+        # Default to 5% of the perimeter if no specific count or density is provided
+
     def get_all_stores(self):
         """Returns a list of all Store nodes across all floors."""
         return [store for floor in self.floors for store in floor.stores]
-
-    def get_obstacle_placement_count(self, floor: Floor):
-        """"Determines the number of obstacles to place on each floor."""
-
-        viable_node_count = self.nodes_per_floor - len(floor.perimeter)  # Exclude perimeter nodes
-
-        if self.obstacles > 0:
-            return self.obstacles
-        elif self.obstacle_density > 0:
-            return int(viable_node_count * self.obstacle_density)
-        else:
-            return int(viable_node_count * 0.3)
-        # Default to 30% of the viable floor nodes if no specific count or density is provided
 
     def get_store_placement_count(self, floor: Floor):
         """Determines the number of stores to place on each floor."""
@@ -65,6 +117,19 @@ class Mall:
         else:
             return int(perimeter_size * 0.2)
         # Default to 20% of the floor if no specific count or density is provided
+
+    def get_obstacle_placement_count(self, floor: Floor):
+        """"Determines the number of obstacles to place on each floor."""
+
+        viable_node_count = self.nodes_per_floor - len(floor.perimeter)  # Exclude perimeter nodes
+
+        if self.obstacles > 0:
+            return self.obstacles
+        elif self.obstacle_density > 0:
+            return int(viable_node_count * self.obstacle_density)
+        else:
+            return int(viable_node_count * 0.25)
+        # Default to 25% of the viable floor nodes if no specific count or density is provided
 
     def populate_floors(self):
         for floor in self.floors:
@@ -80,6 +145,9 @@ class Mall:
         """
         Builds the entire mall layout, including floors, stores, and obstacles.
         """
+        self.build_base_floors()
+        self.place_agent()
+        self.place_elevators()
         self.populate_floors()
         assign_goal_item_to_store(self.get_all_stores())
 
@@ -102,6 +170,7 @@ if __name__ == "__main__":
         num_floors=3,
         rows=10,
         columns=12,
+        num_elevators= 10
     )
 
     mall.run_mall_setup()

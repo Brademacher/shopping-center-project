@@ -18,6 +18,8 @@ class Floor():
         # List of stores on the floor #
         self.perimeter: list[Node] = [] # List to hold perimeter nodes
         self.stores = []  # List to hold store nodes
+        self.elevators = [] # List to hold elevator nodes
+        self.stairs = [] # List to hold stairs nodes
 
         # Generating floor grid #
         self.grid = [[Node(i, j, self.f_number) for j in range(self.columns)] for i in range(self.rows)]
@@ -173,9 +175,11 @@ class Floor():
                 elif node.node_type == "store":
                     row_str += "[ S ]"
                 elif node.node_type == "obstacle":
-                    row_str += "[XXX]"
+                    row_str += "[OOO]"
                 elif node.node_type == "generic":
                     row_str += "[   ]"
+                elif node.node_type == "elevator":
+                    row_str += "[ E ]"
                 else:
                     row_str += "[ ? ]"
             print(row_str)
