@@ -13,7 +13,7 @@ class Node:
         self.neighbors: List[Neighbor] = []
 
     def add_neighbor(self, direction: str, node: "Node", weight: float = 1.0):
-        self.neighbors.append(Neighbor(direction, node, weight = (0 if node.node_type == "obstacle" else 1)))
+        self.neighbors.append(Neighbor(direction, node, weight = 1.0))
 
     def remove_neighbor(self, direction: str):
         self.neighbors = [n for n in self.neighbors if n.direction != direction]

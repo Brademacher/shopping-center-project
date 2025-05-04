@@ -1,54 +1,53 @@
 from interfaces.agents import Agent
 from algorithms.astar import AStarPlanner
-from nodecomponents.stores import Store
 
 class AStarAgent(Agent):
-    def __init__(self, planner):
+    def __init__(self, planner=None):
         super().__init__()
-        self.planner = planner
-        self.visited_stores = set()
+        # allow passing in a custom planner or use the default
+        self.planner = planner or AStarPlanner()
 
     def run(self, env, start_node, goal_nodes: list):
-        current = start_node
-        path_taken = []
+        """
+        Repeatedly A* from the same start_node to each store
+        in ascending manhattan order, accumulating totals, until
+        we hit the store with the goal item.
+        Returns: (final_path, total_expanded, total_length, total_cost)
+        """
+        # sort stores by straight‐line (manhattan) distance from the start
+        remaining = sorted(
+            goal_nodes,
+            key=lambda s: abs(start_node.row - s.row) + abs(start_node.column - s.column)
+        )
+
         total_expanded = 0
-        remaining_stores = goal_nodes.copy()
+        total_length   = 0
+        total_cost     = 0.0
 
-        while remaining_stores:
-            # Step 1: Choose nearest unvisited store
-            remaining_stores.sort(
-                key=lambda s: abs(current.row - s.row) + abs(current.column - s.column)
-            )
-            target = remaining_stores[0]
-            # print(f"Now heading to: {target.name} at ({target.row},{target.column})")
-
-            # Step 2: A* to target
-            path, expanded = self.planner.plan(env, current, target)
+        for target in remaining:
+            path, expanded = self.planner.plan(env, start_node, target)
             total_expanded += expanded
 
             if not path:
-                print(f"WARNING: No path found to {target.name} at ({target.row},{target.column})")
-                self.visited_stores.add(target)
-                remaining_stores = [s for s in remaining_stores if s not in self.visited_stores]
+                # (shouldn't happen if your 3D‐connectivity guard is solid)
                 continue
 
-            total_expanded += expanded
+            # accumulate the length and cost of this sub‐path
+            sub_length = len(path)
+            sub_cost = 0.0
+            # sum up the actual edge‐weights
+            for a, b in zip(path, path[1:]):
+                for link in a.get_neighbors():
+                    if link.node is b:
+                        sub_cost += link.weight
+                        break
 
-            if path_taken:
-                path_taken.extend(path[1:])
-            else:
-                path_taken.extend(path)
+            total_length += sub_length
+            total_cost   += sub_cost
 
-            # print(f"Path leads to: ({path[-1].row},{path[-1].column})")
-            print(f"Target store is: ({target.row},{target.column})")
-            # print(f"Has goal item? {target.has_goal_item}")
+            # if this store has the goal, stop and return the last path
+            if getattr(target, "has_goal_item", False):
+                return path, total_expanded, total_length, total_cost
 
-            if target.has_goal_item:
-                return path_taken, total_expanded
-
-            self.visited_stores.add(target)
-            remaining_stores = [s for s in remaining_stores if s not in self.visited_stores]
-            current = target
-        
-        print("Agent failed to reach any store with the goal item.")
-        return path_taken, total_expanded
+        # never found it (shouldn't happen)
+        return [], total_expanded, total_length, total_cost

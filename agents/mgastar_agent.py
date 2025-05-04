@@ -4,34 +4,32 @@ class MultiGoalAStarAgent(Agent):
     def __init__(self, planner):
         super().__init__()
         self.planner = planner
-        self.total_steps = 0
-        self.total_expansions = 0
-        self.path_cost = 0
-        self.total_path_cost = 0
-        self.success = False
 
     def run(self, env, start_node, goal_nodes: list):
-        sorted_goals, expanded = self.planner.plan(env, start_node, goal_nodes)
+        """
+        Run one multi-goal A* from start_node to ALL goal_nodes,
+        then accumulate length & cost of each sub-path in ascending
+        order until we hit the store with the goal item.
+        Returns: (path_to_goal, total_expanded, total_length, total_cost)
+        """
+        # single planning pass
+        sorted_goals, total_expanded = self.planner.plan(
+            env, start_node, goal_nodes
+        )
 
+        total_length = 0
+        total_cost   = 0.0
+        final_path   = []
+        
+        # walk through the sorted results
         for result in sorted_goals:
-            goal = result["goal"]
             path = result["path"]
-            expansions = result.get("expanded", 0)
             cost = result["cost"]
+            total_length += len(path)
+            total_cost   += cost
 
-            self.total_steps += len(path)
-            self.total_expansions += expansions
-            self.path_cost += max(0, len(path) - 1)
-            self.total_path_cost += cost
+            if result["goal"].has_goal_item:
+                final_path = path
+                break
 
-            # print(f"Now heading to: {goal.name} at ({goal.row},{goal.column})")
-            # print(f"Path leads to: ({path[-1].row},{path[-1].column})")
-            # print(f"Target store is: ({goal.row},{goal.column})")
-            # print(f"Has goal item? {'Yes' if goal.has_goal_item else 'No'}")
-
-            if goal.has_goal_item:
-                self.success = True
-                return path, expansions, goal
-
-        print("WARNING: No reachable store had the goal item.")
-        return None, expanded, None  # No path to correct goal
+        return final_path, total_expanded, total_length, total_cost

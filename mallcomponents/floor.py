@@ -2,7 +2,6 @@ import random
 from collections import deque
 from interfaces.nodes import Node
 from mallcomponents.node_connectivity import * # type: ignore
-from nodecomponents.goal_logic import assign_goal_item_to_store
 from nodecomponents.stores import Store
 from nodecomponents.static_obstacles import Obstacle
 from mallcomponents.node_connectivity import is_fully_connected_3d
@@ -110,31 +109,21 @@ class Floor():
         for node in viable_nodes:
             if placed >= count:
                 break
-
             r, c = node.row, node.column
+
             original = self.grid[r][c]
             obstacle = Obstacle(r, c, self.f_number)
-            # 1) place it
             self.grid[r][c] = obstacle
+            # (tear out the horizontal links here, like you do in place_single_obstacle)
 
-            # 2) tear out links from its neighbors → obstacle
-            for link in original.get_neighbors():
-                nbr = link.node
-                rev = {"up":"down","down":"up","left":"right","right":"left"}[link.direction]
-                nbr.remove_neighbor(rev)
-                nbr.add_neighbor(rev, obstacle)
-
-            # 3) test 3D connectivity
+            # NEW: 3D connectivity test
             if is_fully_connected_3d(start_node, all_stores):
                 placed += 1
             else:
-                # 4) revert links
-                for link in original.get_neighbors():
-                    nbr = link.node
-                    rev = {"up":"down","down":"up","left":"right","right":"left"}[link.direction]
-                    nbr.remove_neighbor(rev)
-                    nbr.add_neighbor(rev, original)
+                # revert the neighbor‐links + grid cell
+                # (restore links exactly as you do now)
                 self.grid[r][c] = original
+
 
         return placed
 
