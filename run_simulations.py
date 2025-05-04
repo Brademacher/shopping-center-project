@@ -124,13 +124,15 @@ def main():
         config_key = (e, s, rows, cols, floors, spf, odens)
         if config_key not in printed_configs:
             printed_configs.add(config_key)
-            print("\n" + "--- Setup ---".center(90))
+            
+            print("\n" + "-" * 72)
+            print("--- Setup ---".center(72))
             print(f"{'Floors':<8} {'Rows':<6} {'Cols':<6} {'Stores/Floor':<15} "
                   f"{'Obst. Density':<15} {'Elevators':<10} {'Stairs':<8}")
             print(f"{floors:>6} {rows:>6} {cols:>6} {spf:>14} "
                   f"{odens:>16.2f} {e:>10} {s:>8}")
 
-            print("\n" + "--- Averages ---".center(90))
+            print("\n" + "--- Averages ---".center(68))
             print(f"{'Alg':<15} {'AvgLen':>10} {'AvgCost':>10} "
                   f"{'AvgExp':>12} {'AvgTime(s)':>14}")
 
@@ -142,6 +144,7 @@ def main():
 
         print(f"{alg:<15} {avg_len:10.2f} {avg_cost:10.2f} "
               f"{avg_exp:12.2f} {avg_time:14.4f}")
+    print("-" * 72 + "\n") 
 
     # --- Save to CSV ---
     with open("batch_results.csv", "w", newline="") as f:
