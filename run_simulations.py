@@ -70,7 +70,7 @@ def main():
     SEEDS   = list(range(10))
     CONFIGS = [
         {"num_floors": 3, "rows": 20, "columns": 20, "stores_per_floor": 10, "obstacle_density": 0.2, "num_elevators": 5, "num_stairs": 5},
-        {"num_floors": 3, "rows": 25, "columns": 25, "stores_per_floor": 15, "obstacle_density": 0.35, "num_elevators": 5, "num_stairs": 5}
+        {"num_floors": 4, "rows": 55, "columns": 55, "stores_per_floor": 20, "obstacle_density": 0.40, "num_elevators": 6, "num_stairs": 6}
     ]
     agents_list = [
         AStarAgent(),
@@ -132,9 +132,9 @@ def main():
             print(f"{floors:>6} {rows:>6} {cols:>6} {spf:>14} "
                   f"{odens:>16.2f} {e:>10} {s:>8}")
 
-            print("\n" + "--- Averages ---".center(68))
-            print(f"{'Alg':<15} {'AvgLen':>10} {'AvgCost':>10} "
-                  f"{'AvgExp':>12} {'AvgTime(s)':>14}")
+            print("\n" + "--- Averages ---".center(72))
+            print(f"{'Alg':<15} {'Avg Len':>10} {'Avg Cost':>10} "
+                  f"{'Avg Exp':>12} {'Avg Time(s)':>14}")
 
         cnt = stats["count"]
         avg_len = stats["sum_len"] / cnt
