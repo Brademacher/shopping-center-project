@@ -1,8 +1,6 @@
 from collections import deque
 from interfaces.nodes import Node
 
-
-
 def connect_nodes(grid, rows, columns):
     for i in range(rows):
         for j in range(columns):
@@ -69,7 +67,7 @@ def is_fully_connected(start_node, store_nodes, grid):
     return True
 
 
-def is_blocking_entry(node, inward_direction_func):
+def is_blocking_entry(node, grid, inward_direction_func):
     inward_dir = inward_direction_func(node.row, node.column)
     if not inward_dir:
         return False
@@ -83,8 +81,8 @@ def is_blocking_entry(node, inward_direction_func):
 
     r, c = node.row + dr, node.column + dc
     try:
-        neighbor = node.grid[r][c]
-        return neighbor.node_type in {"store", "start"}
+        neighbor = grid[r][c]
+        return neighbor.node_type in {"store", "start", "elevator", "stairs"}
     except IndexError:
         return False
 

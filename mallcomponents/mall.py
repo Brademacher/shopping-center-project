@@ -81,12 +81,45 @@ class Mall:
         for i, (e_row, e_column) in enumerate(selected_nodes):
             for floor in self.floors:
                 elevator = Elevator(row=e_row, column=e_column, f_number=floor.f_number)
-                floor.grid[e_row][e_column] = elevator
+                floor.grid[e_row][e_column] = elevator  
                 floor.elevators.append(elevator)
 
-                floor.build_perimeter_list()
+        for floor in self.floors:
+            connect_nodes(floor.grid, floor.rows, floor.columns)
+            floor.build_perimeter_list()
 
-        print(f"Placed {len(selected_nodes)} elevators at coordinates: {selected_nodes}")
+        # Add vertical neighbors for each elevator exactly once:
+        for idx, floor in enumerate(self.floors):
+            for elevator in floor.elevators:
+                r, c = elevator.row, elevator.column
+
+                # link up to the elevator on the floor above
+                if idx < len(self.floors) - 1:
+                    above = self.floors[idx + 1].grid[r][c]
+                    if not any(link.direction == "up_floor" and link.node is above
+                            for link in elevator.get_neighbors()):
+                        elevator.add_neighbor("up_floor", above)
+                        above.add_neighbor("down_floor", elevator)
+
+                # link down to the elevator on the floor below
+                if idx > 0:
+                    below = self.floors[idx - 1].grid[r][c]
+                    if not any(link.direction == "down_floor" and link.node is below
+                            for link in elevator.get_neighbors()):
+                        elevator.add_neighbor("down_floor", below)
+                        below.add_neighbor("up_floor", elevator)
+
+        # Print to elevator neighbors
+        # for i in range(len(self.floors)):
+        #     for elev in sorted(self.floors[i].elevators, key=lambda e: (e.row, e.column)):
+        #         nbrs = [
+        #             (link.direction,
+        #             (link.node.row, link.node.column, link.node.f_number))
+        #             for link in elev.get_neighbors()
+        #         ]
+        #         print(f"{elev.name} {nbrs}")
+        
+        
 
     def get_stairs_placement_count(self, floor: Floor):
         """Determines the number of stairs to place in mall."""
@@ -132,14 +165,15 @@ class Mall:
         # Default to 25% of the viable floor nodes if no specific count or density is provided
 
     def populate_floors(self):
+        globbal_start = self.floors[self.agent_start_floor].start_node
+        global_stores = self.get_all_stores()
+
         for floor in self.floors:
             store_count = self.get_store_placement_count(floor)
-            obstacle_count = self.get_obstacle_placement_count(floor)
             floor.place_stores(count=store_count)
 
-        ###### Temporary: Place obstacles only on agent start floor ######
-            if floor.f_number == self.agent_start_floor: 
-                floor.place_obstacles(count=obstacle_count)
+            obstacle_count = self.get_obstacle_placement_count(floor)
+            floor.place_obstacles(count=obstacle_count, start=globbal_start, stores=global_stores)
 
     def run_mall_setup(self):
         """
