@@ -1,16 +1,12 @@
-# run_simulations.py
-
 import csv
 import random
 import time
 
 from mallcomponents.mall                 import Mall
 from agents.astar_agent                  import AStarAgent
-from algorithms.astar                    import AStarPlanner
 from agents.mgastar_agent                import MultiGoalAStarAgent
-from algorithms.mgastar                  import MultiGoalAStarPlanner
 from agents.dstarlite_agent              import DStarLiteAgent
-from algorithms.dstarlite                import DStarLitePlanner
+
 
 
 def compute_path_cost(path):
@@ -38,12 +34,21 @@ def make_mall(seed, **kwargs):
     return m
 
 
-def run_astar(mall):
+def run_agent(mall, agent):
     start = mall.floors[mall.agent_start_floor].start_node
     goals = mall.get_all_stores()
 
+    if isinstance(agent, AStarAgent):
+        algorithm = "A*"
+    elif isinstance(agent, MultiGoalAStarAgent):
+        algorithm = "MultiGoal-A*"
+    elif isinstance(agent, DStarLiteAgent):
+        algorithm = "D* Lite"
+    else:
+        raise ValueError("Unknown agent type") 
+
     t0 = time.perf_counter()
-    path, expanded, total_length, total_cost = AStarAgent().run(
+    path, expanded, length, cost = agent.run(
         env=mall,
         start_node=start,
         goal_nodes=goals
@@ -51,52 +56,7 @@ def run_astar(mall):
     compute_time = time.perf_counter() - t0
 
     return {
-        "algorithm":   "A*",
-        "expanded":    expanded,
-        "time":        compute_time,
-        "path_length": total_length,
-        "path_cost":   total_cost,
-        "ends_at":     (path[-1].row, path[-1].column, path[-1].f_number)
-                     if path else None
-    }
-
-
-def run_mgastar(mall):
-    start = mall.floors[mall.agent_start_floor].start_node
-    goals = mall.get_all_stores()
-
-    t0 = time.perf_counter()
-    path, expanded, length, cost = MultiGoalAStarAgent().run(
-        env=mall, 
-        start_node=start, 
-        goal_nodes=goals
-    )
-    compute_time = time.perf_counter() - t0
-
-    return {
-        "algorithm":   "MultiGoal-A*",
-        "expanded":    expanded,
-        "time":        compute_time,
-        "path_length": length,
-        "path_cost":   cost,
-        "ends_at":     (path[-1].row, path[-1].column, path[-1].f_number)
-                      if path else None
-    }
-
-def run_dstarlite(mall):
-    start = mall.floors[mall.agent_start_floor].start_node
-    goals = mall.get_all_stores() 
-
-    t0 = time.perf_counter()
-    path, expanded, length, cost = DStarLiteAgent().run(
-        env=mall,
-        start_node=start,
-        goal_nodes=goals
-        )
-    compute_time = time.perf_counter() - t0
-
-    return {
-        "algorithm":   "D* Lite",
+        "algorithm":   algorithm,
         "expanded":    expanded,
         "time":        compute_time,
         "path_length": length,
@@ -110,28 +70,23 @@ def main():
     CONFIGS = [
         {"num_floors": 3, "rows": 20, "columns": 20, "stores_per_floor": 10, "obstacle_density": 0.2, "num_elevators": 5, "num_stairs": 5},
     ]
-
+    agents_list = [
+        AStarAgent(),
+        MultiGoalAStarAgent(),
+        DStarLiteAgent()
+    ]
     all_results = []
     for cfg in CONFIGS:
         for seed in SEEDS:
             mall = make_mall(seed, **cfg)
-            for fn in (run_astar, run_mgastar, run_dstarlite):
-                res = fn(mall)
+            for agent in agents_list:
+                res = run_agent(mall, agent)
                 res.update({
                     "seed":      seed,
                     "elevators": cfg["num_elevators"],
                     "stairs":    cfg["num_stairs"],
                 })
                 all_results.append(res)
-
-    # # Print per-trial results
-    # print(f"{'Alg':<15} {'E':>2} {'S':>2} {'Seed':>4} "
-    #     f"{'Len':>5} {'Cost':>10} {'Exp':>10} {'Time(s)':>8}")
-    # for r in all_results:
-    #     ends = str(r["ends_at"]) if r["ends_at"] else "<none>"
-    #     print(f"{r['algorithm']:<15} {r['elevators']:>2} {r['stairs']:>2} "
-    #         f"{r['seed']:>4} {r['path_length']:>5} {r['path_cost']:>10.2f} "
-    #         f"{r['expanded']:>10} {r['time']:>8.4f}")
 
     # Compute and print averages
     summary = {}
