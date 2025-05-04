@@ -83,7 +83,7 @@ class Floor():
         self.start_node = valid_spots[0]
         self.start_node.node_type = "start"
         add_inward_neighbor(self.grid, self.start_node, self.rows, self.columns)
-        print(f"Agent start node set to ({self.start_node.row}, {self.start_node.column})")
+        # print(f"Agent start node set to ({self.start_node.row}, {self.start_node.column})")
 
 
     def place_obstacles(self, count: int, all_stores: list[Store], start_node: Node):
