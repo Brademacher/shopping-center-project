@@ -10,11 +10,11 @@ class DStarLiteAgent(Agent):
         goal_node = goal_nodes[0]
 
         print(f"Planning path from ({start_node.row}, {start_node.column}) to ({goal_node.row}, {goal_node.column})")
-        path = self.planner.plan(env, start_node, goal_node)
+        path, expanded = self.planner.plan(env, start_node, goal_node)
 
         if path:
             print(f"D* Lite path found. Path length: {len(path)}")
-            return path, len(path)  # using path length as an approximate expansion metric for now
+            return path, expanded  # using path length as an approximate expansion metric for now
         else:
             print("No path found.")
             return None
