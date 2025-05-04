@@ -74,6 +74,25 @@ def is_fully_connected(start_node, store_nodes, grid):
 
     return True
 
+def is_fully_connected_3d(start_node, store_nodes):
+    """
+    Return True if every node in store_nodes is reachable from start_node
+    via ANY neighbor links (horizontal, elevator, or stairs).
+    """
+    visited = set()
+    queue   = deque([start_node])
+    visited.add(start_node)
+
+    while queue:
+        current = queue.popleft()
+        for link in current.get_neighbors():
+            nbr = link.node
+            if nbr not in visited and nbr.node_type != "obstacle":
+                visited.add(nbr)
+                queue.append(nbr)
+
+    return all(store in visited for store in store_nodes)
+
 
 def is_blocking_entry(node, grid, inward_direction_func):
     inward_dir = inward_direction_func(node.row, node.column)

@@ -1,0 +1,4 @@
+name,expanded,path_length,ends_at
+A*,794,66,"(10, 19, 1)"
+MultiGoal-A*,14,6,"(10, 19, 1)"
+D* Lite,878,6,"(10, 19, 1)"

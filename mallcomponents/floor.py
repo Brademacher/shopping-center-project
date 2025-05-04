@@ -1,11 +1,11 @@
 import random
 from collections import deque
-
 from interfaces.nodes import Node
 from mallcomponents.node_connectivity import * # type: ignore
 from nodecomponents.goal_logic import assign_goal_item_to_store
 from nodecomponents.stores import Store
 from nodecomponents.static_obstacles import Obstacle
+from mallcomponents.node_connectivity import is_fully_connected_3d
 
 class Floor():
 
@@ -86,15 +86,8 @@ class Floor():
         print(f"Agent start node set to ({self.start_node.row}, {self.start_node.column})")
 
 
-    def place_obstacles(self, count: int, start: Node, stores: list[Store]):
-        """
-        Randomly places static obstacles that block movement.
-        Constraints:
-        - Cannot be on the perimeter
-        - Cannot be directly in front of a store or start
-        - Must not fully block access to all goals or the agent
-        - Must not block the path to the elevator or stairs
-        """
+    def place_obstacles(self, count: int, all_stores: list[Store], start_node: Node):
+
         # Gather viable candidate nodes
         viable_nodes = []
         for row in self.grid:
@@ -117,8 +110,31 @@ class Floor():
         for node in viable_nodes:
             if placed >= count:
                 break
-            if self.place_single_obstacle(node.row, node.column, start, stores):
+
+            r, c = node.row, node.column
+            original = self.grid[r][c]
+            obstacle = Obstacle(r, c, self.f_number)
+            # 1) place it
+            self.grid[r][c] = obstacle
+
+            # 2) tear out links from its neighbors → obstacle
+            for link in original.get_neighbors():
+                nbr = link.node
+                rev = {"up":"down","down":"up","left":"right","right":"left"}[link.direction]
+                nbr.remove_neighbor(rev)
+                nbr.add_neighbor(rev, obstacle)
+
+            # 3) test 3D connectivity
+            if is_fully_connected_3d(start_node, all_stores):
                 placed += 1
+            else:
+                # 4) revert links
+                for link in original.get_neighbors():
+                    nbr = link.node
+                    rev = {"up":"down","down":"up","left":"right","right":"left"}[link.direction]
+                    nbr.remove_neighbor(rev)
+                    nbr.add_neighbor(rev, original)
+                self.grid[r][c] = original
 
         return placed
 
@@ -190,23 +206,3 @@ class Floor():
                 else:
                     row_str += "[ ? ]"
             print(row_str)
-
-
-# # TESTING PURPOSES ONLY #
-# if __name__ == "__main__":
-#     floor = Floor(rows=10, columns=12, f_number=0)
-
-#     floor.place_agent_start()
-#     floor.place_stores(count=6)
-#     assign_goal_item_to_store(floor.stores)
-#     floor.place_obstacles(count=10)
-
-#     floor.print_floor_layout_with_obstacles()
-
-#     print("\nStore Summary:")
-#     print(f"\nDEBUG: Store count = {len(floor.stores)}")
-#     store_names = [s.name for s in floor.stores]
-#     print(f"DEBUG: Unique store names = {set(store_names)}")
-#     for store in floor.stores:
-#         status = "GOAL ITEM" if store.has_goal_item else "empty"
-#         print(f"- {store.name} at ({store.row},{store.column}) → {status}")

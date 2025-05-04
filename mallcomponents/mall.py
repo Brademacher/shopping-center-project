@@ -166,15 +166,24 @@ class Mall:
         # Default to 25% of the viable floor nodes if no specific count or density is provided
 
     def populate_floors(self):
-        globbal_start = self.floors[self.agent_start_floor].start_node
-        global_stores = self.get_all_stores()
+        # grab the one start node (on whatever floor the agent began)
+        start = self.floors[self.agent_start_floor].start_node
+        # grab _all_ of the stores on _all_ floors
+        all_stores = self.get_all_stores()
 
         for floor in self.floors:
+            # place your stores as before
             store_count = self.get_store_placement_count(floor)
             floor.place_stores(count=store_count)
 
+            # now place obstacles on every floor (or only on the start floor,
+            # whichever you prefer), but pass in the full 3D context:
             obstacle_count = self.get_obstacle_placement_count(floor)
-            floor.place_obstacles(count=obstacle_count, start=globbal_start, stores=global_stores)
+            floor.place_obstacles(
+                count=obstacle_count,
+                all_stores=all_stores,
+                start_node=start
+            )
 
     def run_mall_setup(self):
         """
@@ -194,9 +203,6 @@ class Mall:
 
         add_elevator_vertical_neighbors(self.floors)
         update_stair_neighbors(self.floors)
-
-
-
 
 
     def print_mall_layout(self):
