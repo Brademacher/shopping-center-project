@@ -8,7 +8,6 @@ from agents.mgastar_agent                import MultiGoalAStarAgent
 from agents.dstarlite_agent              import DStarLiteAgent
 
 
-
 def compute_path_cost(path):
     cost = 0.0
     for a, b in zip(path, path[1:]):
