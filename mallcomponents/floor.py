@@ -159,14 +159,14 @@ class Floor():
             return False
 
 
-    def print_floor_layout_with_obstacles(self, path_nodes=None):
+    def print_floor_layout(self, path_nodes=None):
         """
         Prints the floor with agent path included.
         path_nodes: optional list of nodes the agent path includes.
         """
         path_coords = set((n.row, n.column, n.f_number) for n in path_nodes) if path_nodes else set()
+        lines = []
 
-        print("\nFloor Layout with Obstacles:\n")
         for row in self.grid:
             row_str = ""
             for node in row:
@@ -180,13 +180,20 @@ class Floor():
                 elif node.node_type == "store":
                     row_str += "[ S ]"
                 elif node.node_type == "obstacle":
-                    row_str += "[OOO]"
+                    row_str += "[■■■]"
                 elif node.node_type == "generic":
                     row_str += "[   ]"
                 elif node.node_type == "elevator":
-                    row_str += "[ E ]"
+                    row_str += "[ ↕ ]"
                 elif node.node_type == "stairs":
-                    row_str += "[ ^ ]"
+                    # Check for directional stair neighbors
+                    directions = {link.direction for link in node.get_neighbors()}
+                    if "up_stairs" in directions:
+                        row_str += "[ ↑ ]"  # Only goes up
+                    elif "down_stairs" in directions:
+                        row_str += "[ ↓ ]"  # Only goes down
                 else:
                     row_str += "[ ? ]"
+            lines.append(row_str)
             print(row_str)
+        return lines

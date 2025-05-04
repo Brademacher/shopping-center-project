@@ -2,8 +2,6 @@ import csv
 import random
 import time
 
-from collections                         import defaultdict
-from math                                import ceil
 from mallcomponents.mall                 import Mall
 from agents.astar_agent                  import AStarAgent
 from agents.mgastar_agent                import MultiGoalAStarAgent

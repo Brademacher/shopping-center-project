@@ -201,10 +201,61 @@ class Mall:
         add_elevator_vertical_neighbors(self.floors)
         update_stair_neighbors(self.floors)
 
+    def print_mall_layout(self, to_file = None):
 
-    def print_mall_layout(self):
-        """ Prints the layout of each floor in the mall, including obstacles, stores, and agent start (but no path)."""
-        print("\n=== Mall Layout ===\n")
+        center_width = self.columns * 5
+        lines = []
+
+        lines.append(centered("=== Mall Layout ===", center_width))
         for floor in self.floors:
-            print(f"\n--- Floor {floor.f_number} ---")
-            floor.print_floor_layout_with_obstacles()
+            lines.append("\n" + centered(f"--- Floor {floor.f_number} ---", center_width))
+            lines.extend(floor.print_floor_layout())
+
+        # Add legend
+        lines.append("\n" + "-" * 72)
+        lines.append("Key".center(72))
+        lines.append(f"{'[ A ]':<10} {'Agent Start':<15} {'[ ↕ ]':<10} {'Elevator':<15}")
+        lines.append(f"{'[ ↑ ]':<10} {'Stairs Up':<15} {'[ ↓ ]':<10} {'Stairs Down':<15}")
+        lines.append(f"{'[ S ]':<10} {'Store':<15} {'[ G ]':<10} {'Goal Store':<15}")
+        lines.append(f"{'[■■■]':<10} {'Obstacle':<15} {'[   ]':<10} {'Traversal Space':<15}")
+        lines.append("-" * 72 + "\n")
+
+        output = "\n".join(lines)
+
+        if to_file:
+            with open(to_file, 'w', encoding='utf-8') as f:
+                f.write(output)
+        else:
+            print(output)
+
+        print()
+        print(centered("=== Mall Layout ===", center_width))
+        for floor in self.floors:
+            print("\n" + centered(f"--- Floor {floor.f_number + 1} ---", center_width))
+            floor.print_floor_layout()
+        
+        # Legend/Key
+        print("\n" + "-" * 72)
+        print("Key".center(72))
+        print(f"{'[ A ]':<10} {'Agent Start':<15} {'[ ↕ ]':<10} {'Elevator':<15}")
+        print(f"{'[ ↑ ]':<10} {'Stairs Up':<15} {'[ ↓ ]':<10} {'Stairs Down':<15}")
+        print(f"{'[ S ]':<10} {'Store':<15} {'[ G ]':<10} {'Goal Store':<15}")
+        print(f"{'[■■■]':<10} {'Obstacle':<15} {'[   ]':<10} {'Traversal Space':<15}")
+        print("-" * 72 + "\n")
+
+def centered(text, width):
+    return text.center(width)
+
+### FOR TESTING PURPOSES ONLY ###
+if __name__ == "__main__":
+    # Create a mall with either store count or density (can mix or swap)
+    mall = Mall(
+        num_floors=3,
+        rows=15,
+        columns=15,
+        num_elevators= 5
+    )
+
+    mall.run_mall_setup()
+    mall.print_mall_layout()
+    mall.print_mall_layout(to_file="mall_layout.txt")

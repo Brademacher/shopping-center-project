@@ -184,7 +184,7 @@ def update_stair_neighbors(floors: list):
     for floor_index, floor in enumerate(floors):
         for stair in floor.stairs:
             directions = {left.direction for left in stair.get_neighbors()}
-            if "upstairs" in directions:
+            if "up_stairs" in directions:
                 lock_stair_neighbors(stair, {"left", "up_stairs"})
 
             else:
