@@ -34,7 +34,6 @@ class DStarLitePlanner:
             if len(u.get_neighbors()) > 0:
                 self.rhs[u] = min(
                     [
-
                             neighbor.weight + self.g.get(neighbor.node, float('inf'))
                             for neighbor in u.get_neighbors()
                     ]
