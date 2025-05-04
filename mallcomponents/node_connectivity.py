@@ -1,7 +1,13 @@
 from collections import deque
 from interfaces.nodes import Node
+from nodecomponents.elevators import Elevator
+from nodecomponents.stairs    import Stairs
 
-
+OPP_DIR = {
+    "up": "down", "down": "up",
+    "left": "right", "right": "left",
+    "up_stairs": "down_stairs", "down_stairs": "up_stairs"
+}
 
 def connect_nodes(grid, rows, columns):
     for i in range(rows):
@@ -69,7 +75,7 @@ def is_fully_connected(start_node, store_nodes, grid):
     return True
 
 
-def is_blocking_entry(node, inward_direction_func):
+def is_blocking_entry(node, grid, inward_direction_func):
     inward_dir = inward_direction_func(node.row, node.column)
     if not inward_dir:
         return False
@@ -83,8 +89,8 @@ def is_blocking_entry(node, inward_direction_func):
 
     r, c = node.row + dr, node.column + dc
     try:
-        neighbor = node.grid[r][c]
-        return neighbor.node_type in {"store", "start"}
+        neighbor = grid[r][c]
+        return neighbor.node_type in {"store", "start", "elevator", "stairs"}
     except IndexError:
         return False
 
@@ -107,3 +113,61 @@ def is_corner(row, col, rows, columns):
         (row == rows - 1 and col == 0) or
         (row == rows - 1 and col == columns - 1)
     )
+
+def lock_stair_neighbors(stair_node: Node, allowed_dirs: set[str]) -> None:
+    """
+    Prune away any neighbor link on stair_node whose direction
+    isn't in allowed_dirs. Also remove the corresponding back‐link.
+    """
+    # work off a copy so we can mutate the real list
+    for link in stair_node.get_neighbors()[:]:
+        direction = link.direction
+        if direction not in allowed_dirs:
+            nbr = link.node
+            stair_node.remove_neighbor(direction)
+            nbr.remove_neighbor(OPP_DIR[direction])
+
+def add_elevator_vertical_neighbors(floors: list):
+    """ Connecting up_floor and down_floor elevator neighbors """
+    for index, floor in enumerate(floors):
+        for elevator in floor.elevators:
+            row, column = elevator.row, elevator.column
+
+            # Add up_floor neighbor
+            if index < len(floors) -1:
+                above = floors[index + 1].grid[row][column]
+                if isinstance(above, Elevator):
+                    elevator.add_neighbor("up_floor", above, weight = 1.5)
+                    above.add_neighbor("down_floor", elevator, weight = 1.5)
+
+            # Add down_floor neighbor
+            if index > 0:
+                below = floors[index - 1].grid[row][column]
+                if isinstance(below, Elevator):
+                    elevator.add_neighbor("down_floor", below, weight = 1.5)
+                    below.add_neighbor("up_floor", elevator, weight = 1.5)
+
+def update_stair_neighbors(floors: list):
+    """ Add stair neighbors for all floors """
+    for floor in range(len(floors) - 1):
+        lower = floors[floor]
+        upper = floors[floor + 1]
+        for low in lower.stairs:
+            row, column = low.row, low.column
+
+            # Add up_stairs/down_stairs neighbors
+            if (column + 1 < upper.columns
+                and isinstance(upper.grid[row][column + 1], Stairs)):
+                up = upper.grid[row][column + 1]
+                low.add_neighbor("up_stairs", up, weight = 2.5)
+                up.add_neighbor("down_stairs", low, weight = 2.5)
+
+    """ Remove invalid stair neighbors for all floors """
+    for floor_index, floor in enumerate(floors):
+        for stair in floor.stairs:
+            directions = {left.direction for left in stair.get_neighbors()}
+            if "upstairs" in directions:
+                lock_stair_neighbors(stair, {"left", "up_stairs"})
+
+            else:
+                lock_stair_neighbors(stair, {"right", "down_stairs"})

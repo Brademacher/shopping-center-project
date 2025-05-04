@@ -18,6 +18,8 @@ class Floor():
         # List of stores on the floor #
         self.perimeter: list[Node] = [] # List to hold perimeter nodes
         self.stores = []  # List to hold store nodes
+        self.elevators = [] # List to hold elevator nodes
+        self.stairs = [] # List to hold stairs nodes
 
         # Generating floor grid #
         self.grid = [[Node(i, j, self.f_number) for j in range(self.columns)] for i in range(self.rows)]
@@ -84,13 +86,14 @@ class Floor():
         print(f"Agent start node set to ({self.start_node.row}, {self.start_node.column})")
 
 
-    def place_obstacles(self, count: int):
+    def place_obstacles(self, count: int, start: Node, stores: list[Store]):
         """
         Randomly places static obstacles that block movement.
         Constraints:
         - Cannot be on the perimeter
         - Cannot be directly in front of a store or start
         - Must not fully block access to all goals or the agent
+        - Must not block the path to the elevator or stairs
         """
         # Gather viable candidate nodes
         viable_nodes = []
@@ -100,9 +103,12 @@ class Floor():
                     viable_nodes.append(node)
 
         # Filter out nodes that block store/start entries
+        blocked_types = {"store","start","elevator","stairs"}
         viable_nodes = [
             node for node in viable_nodes
-            if not is_blocking_entry(node, lambda r, c: get_inward_direction(r, c, self.rows, self.columns))
+            if all(link.node.node_type not in blocked_types
+                for link in node.get_neighbors())
+            # if not is_blocking_entry(node, self.grid, lambda r, c: get_inward_direction(r, c, self.rows, self.columns))
         ]
 
         random.shuffle(viable_nodes)
@@ -111,14 +117,15 @@ class Floor():
         for node in viable_nodes:
             if placed >= count:
                 break
-            if self.place_single_obstacle(node.row, node.column):
+            if self.place_single_obstacle(node.row, node.column, start, stores):
                 placed += 1
 
         return placed
 
 
-    def place_single_obstacle(self, row: int, column: int):
-                # Temporarily place obstacle
+    def place_single_obstacle(self, row: int, column: int, start: Node, stores: list[Store]) -> bool:
+        
+        # Temporarily place obstacle
         original = self.grid[row][column]
         obstacle = Obstacle(row, column, self.f_number)
         self.grid[row][column] = obstacle
@@ -135,7 +142,7 @@ class Floor():
                 neighbor.add_neighbor(reverse_dir, obstacle)
 
         # Check connectivity
-        if is_fully_connected(self.start_node, self.stores, self.grid):
+        if is_fully_connected(start, stores, self.grid):
             return True  # Obstacle placement is valid
         else:
             # Revert obstacle placement and restore neighbor links
@@ -164,18 +171,22 @@ class Floor():
             row_str = ""
             for node in row:
                 coord = (node.row, node.column, node.f_number)
-                if node == self.start_node:
+                if self.start_node and node == self.start_node:
                     row_str += "[ A ]"
                 elif coord in path_coords:
                     row_str += "[ * ]"
                 elif node.node_type == "store" and getattr(node, "has_goal_item", False):
                     row_str += "[ G ]"
                 elif node.node_type == "store":
-                    row_str += "[ s ]"
+                    row_str += "[ S ]"
                 elif node.node_type == "obstacle":
-                    row_str += "[ o ]"
+                    row_str += "[OOO]"
                 elif node.node_type == "generic":
                     row_str += "[   ]"
+                elif node.node_type == "elevator":
+                    row_str += "[ E ]"
+                elif node.node_type == "stairs":
+                    row_str += "[ ^ ]"
                 else:
                     row_str += "[ ? ]"
             print(row_str)
@@ -183,9 +194,6 @@ class Floor():
 
 # # TESTING PURPOSES ONLY #
 # if __name__ == "__main__":
-#     from mallcomponents.floor import Floor
-#     from nodecomponents.goal_logic import assign_goal_item_to_store
-
 #     floor = Floor(rows=10, columns=12, f_number=0)
 
 #     floor.place_agent_start()

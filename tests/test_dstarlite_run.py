@@ -1,60 +1,61 @@
-import time
-from agents.dstarlite_agent import DStarLiteAgent
-from algorithms.dstarlite import DStarLitePlanner
-from mallcomponents.floor import Floor
-from nodecomponents.goal_logic import assign_goal_item_to_store
+# tests/test_dstarlite_run.py
 
-# --- Wrap DStarLitePlanner.plan() to record each call’s compute time ---
-real_planner  = DStarLitePlanner()
-compute_times = []
-_orig_plan    = real_planner.plan
-
-def timed_plan(env, start_node, goal_node):
-    t0 = time.perf_counter()
-    result = _orig_plan(env, start_node, goal_node)
-    compute_times.append(time.perf_counter() - t0)
-    return result
-
-real_planner.plan = timed_plan
-agent = DStarLiteAgent(real_planner)
-
-# --- Environment Setup ---
-floor = Floor(rows=100, columns=100, f_number=0)
-floor.place_agent_start()
-floor.place_stores(count=500)
-assign_goal_item_to_store(floor.stores)
-floor.place_obstacles(count=6600)
-
-# --- Locate the goal store ---
-goal_store = next(store for store in floor.stores if store.has_goal_item)
+from mallcomponents.mall               import Mall
+from nodecomponents.goal_logic         import assign_goal_item_to_store
+from agents.dstarlite_agent            import DStarLiteAgent
+from algorithms.dstarlite               import DStarLitePlanner
 
 def main():
-    # 1) Measure total wall-clock runtime
-    t_start = time.perf_counter()
-    path, expanded = agent.run(
-        floor,
-        start_node=floor.start_node,
-        goal_nodes=floor.stores
+    # 1) configure a 3D mall
+    mall = Mall(
+        num_floors=3,
+        rows=10,
+        columns=12,
+        stores_per_floor=6,
+        obstacles_per_floor=10,
+        num_elevators=2,
+        num_stairs=2,
     )
-    total_time   = time.perf_counter() - t_start
-    compute_time = sum(compute_times)
 
-    # 2) Display the floor and the results
-    floor.print_floor_layout_with_obstacles(path_nodes=path if path else [])
+    # 2) build everything (agent start, stores, obstacles, elevators, stairs, goal item)
+    mall.run_mall_setup()
 
-    print("\nD* Lite Results:")
-    print(f"total_time:    {total_time}")
-    print(f"compute_time:  {compute_time}")
-    print(f"replans:       {agent.total_replans}")
-    print(f"steps_taken:   {agent.total_steps}")
-    print(f"nodes_expanded:{agent.total_expansions}")
-    print(f"path_cost:     {agent.total_path_cost}")
-    print(f"success:       {agent.success}")
+    # 3) pick start & goal
+    start_node = mall.floors[mall.agent_start_floor].start_node
+    goal_store = next(s for s in mall.get_all_stores() if s.has_goal_item)
+
+    # 4) show the empty mall
+    print(f"Goal store will be at: ({goal_store.row},{goal_store.column}, floor {goal_store.f_number})")
+    print("Initial Mall Layout:")
+    for floor in mall.floors:
+        print(f"\n--- Floor {floor.f_number} ---")
+        floor.print_floor_layout_with_obstacles()
+
+    # 5) run D* Lite to that single goal
+    agent   = DStarLiteAgent(planner=DStarLitePlanner())
+    path, expanded = agent.run(
+        env=mall,
+        start_node=start_node,
+        goal_nodes=[goal_store]
+    )
+
+    # 6) print the resulting path per floor
+    for floor in mall.floors:
+        nodes_on = [n for n in path if n.f_number == floor.f_number]
+        print(f"\n--- Floor {floor.f_number} (with path) ---")
+        floor.print_floor_layout_with_obstacles(path_nodes=nodes_on)
+
+    # 7) summary
+    print("\nD* Lite Agent Results:")
+    print(f"  Nodes expanded (approx): {expanded}")
+    print(f"  Path length:            {len(path)}")
+    print("  Full path (row,col,floor):")
+    print("   ", [(n.row, n.column, n.f_number) for n in path])
     if path:
-        print(f"Final path ends at: ({path[-1].row},{path[-1].column})")
-        print(f"Goal store is at:   ({goal_store.row},{goal_store.column})")
+        end = path[-1]
+        print(f"  Final path ends at: ({end.row},{end.column}, floor {end.f_number})")
     else:
-        print("✘ No path found.")
+        print("✘ No path was found to the goal store.")
 
 if __name__ == "__main__":
     main()
