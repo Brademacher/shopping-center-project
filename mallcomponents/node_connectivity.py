@@ -1,5 +1,7 @@
 from collections import deque
 from interfaces.nodes import Node
+from nodecomponents.elevators import Elevator
+from nodecomponents.stairs    import Stairs
 
 OPP_DIR = {
     "up": "down", "down": "up",
@@ -124,3 +126,48 @@ def lock_stair_neighbors(stair_node: Node, allowed_dirs: set[str]) -> None:
             nbr = link.node
             stair_node.remove_neighbor(direction)
             nbr.remove_neighbor(OPP_DIR[direction])
+
+def add_elevator_vertical_neighbors(floors: list):
+    """ Connecting up_floor and down_floor elevator neighbors """
+    for index, floor in enumerate(floors):
+        for elevator in floor.elevators:
+            row, column = elevator.row, elevator.column
+
+            # Add up_floor neighbor
+            if index < len(floors) -1:
+                above = floors[index + 1].grid[row][column]
+                if isinstance(above, Elevator):
+                    elevator.add_neighbor("up_floor", above, weight = 1.5)
+                    above.add_neighbor("down_floor", elevator, weight = 1.5)
+
+            # Add down_floor neighbor
+            if index > 0:
+                below = floors[index - 1].grid[row][column]
+                if isinstance(below, Elevator):
+                    elevator.add_neighbor("down_floor", below, weight = 1.5)
+                    below.add_neighbor("up_floor", elevator, weight = 1.5)
+
+def update_stair_neighbors(floors: list):
+    """ Add stair neighbors for all floors """
+    for floor in range(len(floors) - 1):
+        lower = floors[floor]
+        upper = floors[floor + 1]
+        for low in lower.stairs:
+            row, column = low.row, low.column
+
+            # Add up_stairs/down_stairs neighbors
+            if (column + 1 < upper.columns
+                and isinstance(upper.grid[row][column + 1], Stairs)):
+                up = upper.grid[row][column + 1]
+                low.add_neighbor("up_stairs", up, weight = 2.5)
+                up.add_neighbor("down_stairs", low, weight = 2.5)
+
+    """ Remove invalid stair neighbors for all floors """
+    for floor_index, floor in enumerate(floors):
+        for stair in floor.stairs:
+            directions = {left.direction for left in stair.get_neighbors()}
+            if "upstairs" in directions:
+                lock_stair_neighbors(stair, {"left", "up_stairs"})
+
+            else:
+                lock_stair_neighbors(stair, {"right", "down_stairs"})

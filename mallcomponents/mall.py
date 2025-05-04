@@ -1,6 +1,6 @@
 import random
 from mallcomponents.floor import Floor
-from mallcomponents.node_connectivity import connect_nodes, is_corner, lock_stair_neighbors
+from mallcomponents.node_connectivity import connect_nodes, is_corner, add_elevator_vertical_neighbors, update_stair_neighbors
 from nodecomponents.elevators import Elevator
 from nodecomponents.stairs import Stairs
 from nodecomponents.goal_logic import assign_goal_item_to_store
@@ -87,38 +87,6 @@ class Mall:
         for floor in self.floors:
             connect_nodes(floor.grid, floor.rows, floor.columns)
             floor.build_perimeter_list()
-
-        # Add vertical neighbors for each elevator exactly once:
-        for idx, floor in enumerate(self.floors):
-            for elevator in floor.elevators:
-                r, c = elevator.row, elevator.column
-
-                # link up to the elevator on the floor above
-                if idx < len(self.floors) - 1:
-                    above = self.floors[idx + 1].grid[r][c]
-                    if not any(link.direction == "up_floor" and link.node is above
-                            for link in elevator.get_neighbors()):
-                        elevator.add_neighbor("up_floor", above)
-                        above.add_neighbor("down_floor", elevator)
-
-                # link down to the elevator on the floor below
-                if idx > 0:
-                    below = self.floors[idx - 1].grid[r][c]
-                    if not any(link.direction == "down_floor" and link.node is below
-                            for link in elevator.get_neighbors()):
-                        elevator.add_neighbor("down_floor", below)
-                        below.add_neighbor("up_floor", elevator)
-
-        # Print to elevator neighbors
-        # for i in range(len(self.floors)):
-        #     for elev in sorted(self.floors[i].elevators, key=lambda e: (e.row, e.column)):
-        #         nbrs = [
-        #             (link.direction,
-        #             (link.node.row, link.node.column, link.node.f_number))
-        #             for link in elev.get_neighbors()
-        #         ]
-        #         print(f"{elev.name} {nbrs}")
-        
         
 
     def get_stairs_placement_count(self, floor: Floor):
@@ -165,38 +133,6 @@ class Mall:
         for floor in self.floors:
             connect_nodes(floor.grid, floor.rows, floor.columns)
             floor.build_perimeter_list()
-
-        # Add vertical neighbors for each stair exactly once:
-        # For each pair of floors, link the stairs on the lower floor to the stairs on the upper floor
-        for f in range(self.num_floors - 1):
-            lower = self.floors[f]
-            upper = self.floors[f+1]
-            for low in lower.stairs:
-                r, c = low.row, low.column
-
-                # find its matching upper stair
-                # is this actually a lower‐end stair?
-                # check that on floor f+1 at (r,c+1) we put a Stairs
-                if (c+1 < upper.columns
-                    and isinstance(upper.grid[r][c+1], Stairs)):
-                    up = upper.grid[r][c+1]
-                    low.add_neighbor("up_stairs",   up)
-                    up.add_neighbor("down_stairs",  low)
-
-        ## Add horizontal neighbors for each stair on the same floor
-        # For each floor, link the stairs to their neighbors
-        for floor_idx, floor in enumerate(self.floors):
-            for stair in floor.stairs:
-
-                r, c = stair.row, stair.column
-
-                if any(l.direction=="up_stairs" for l in stair.get_neighbors()):
-                    # lower stair: prune, then inspect its right neighbor
-                    lock_stair_neighbors(stair, {"left", "up_stairs"})
-
-                else:
-                    # upper stair: prune, then inspect its left neighbor
-                    lock_stair_neighbors(stair, {"right", "down_stairs"})
                     
 
     def get_all_stores(self):
@@ -248,8 +184,20 @@ class Mall:
         self.place_agent()
         self.place_elevators()
         self.place_stairs()
+
+        for floor in self.floors:
+            connect_nodes(floor.grid, floor.rows, floor.columns)
+            floor.build_perimeter_list()
+
         self.populate_floors()
         assign_goal_item_to_store(self.get_all_stores())
+
+        add_elevator_vertical_neighbors(self.floors)
+        update_stair_neighbors(self.floors)
+
+
+
+
 
     def print_mall_layout(self):
         """
