@@ -8,10 +8,12 @@ class DStarLitePlanner:
         self.U = []    # priority queue
         self.start = None
         self.goal = None
+        self.expanded = 0
 
     def initialize(self, start_node, goal_node):
         self.start = start_node
         self.goal = goal_node
+        self.expanded = 0
 
         self.rhs[goal_node] = 0
         self.g[goal_node] = float('inf')
@@ -32,7 +34,6 @@ class DStarLitePlanner:
             if len(u.get_neighbors()) > 0:
                 self.rhs[u] = min(
                     [
-
                             neighbor.weight + self.g.get(neighbor.node, float('inf'))
                             for neighbor in u.get_neighbors()
                     ]
@@ -48,6 +49,7 @@ class DStarLitePlanner:
     def compute_shortest_path(self):
         while self.U:
             k_old, u = heapq.heappop(self.U)
+            self.expanded += 1
             k_new = self.calculate_key(u)
 
             if k_old < k_new:
@@ -65,8 +67,9 @@ class DStarLitePlanner:
     def plan(self, env, start_node, goal_node):
         self.initialize(start_node, goal_node)
         self.compute_shortest_path()
+        path = self.reconstruct_path(start_node, goal_node)
 
-        return self.reconstruct_path(start_node, goal_node)
+        return path, self.expanded
 
     def reconstruct_path(self, start_node, goal_node):
         path = [start_node]
