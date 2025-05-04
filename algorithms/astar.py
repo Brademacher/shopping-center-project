@@ -12,7 +12,7 @@ class AStarPlanner:
         g_score = {start_node: 0}
         f_score = {start_node: self.heuristic(start_node, goal_node)}
 
-        visited_nodes = set()  # ← closed_set renamed
+        visited_nodes = set()
         expanded = 0
 
         while open_set:
@@ -39,7 +39,7 @@ class AStarPlanner:
                     f_score[neighbor] = tentative_g + self.heuristic(neighbor, goal_node)
                     heapq.heappush(open_set, (f_score[neighbor], neighbor))
 
-        return [], expanded  # no path found
+        return [], expanded 
 
     def heuristic(self, node_a, node_b):
         return abs(node_a.row - node_b.row) + abs(node_a.column - node_b.column)

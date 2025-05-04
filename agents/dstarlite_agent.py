@@ -7,10 +7,10 @@ class DStarLiteAgent(Agent):
         self.planner = planner
 
     def run(self, env, start_node, goal_nodes: list):
-        
+
         assert goal_nodes, "Need at least one goal"
 
-        # 1) sort all the stores once
+        # sort all the stores once
         remaining = sorted(
             goal_nodes,
             key=lambda s: abs(start_node.row - s.row)
@@ -22,13 +22,13 @@ class DStarLiteAgent(Agent):
         total_cost     = 0.0
         final_path     = []
 
-        # 2) loop until we find the store with the item
+        # loop until we find the store with the item
         for target in remaining:
             path, expanded = self.planner.plan(env, start_node, target)
             total_expanded += expanded
 
             if not path:
-                # (shouldn't happen if your 3D‐connectivity guard is solid)
+                # safety check
                 continue
 
             sub_length = len(path)

@@ -1,9 +1,6 @@
 import random
 
 def assign_goal_item_to_store(stores: list):
-    """
-    Randomly assigns the goal item to one store in the stores list.
-    """
     if stores:
         # Randomly choose a store from the list of stores
         goal_store = random.choice(stores)

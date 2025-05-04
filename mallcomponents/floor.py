@@ -14,11 +14,11 @@ class Floor():
         self.f_number = f_number
         self.start_node = None
 
-        # List of stores on the floor #
-        self.perimeter: list[Node] = [] # List to hold perimeter nodes
-        self.stores = []  # List to hold store nodes
-        self.elevators = [] # List to hold elevator nodes
-        self.stairs = [] # List to hold stairs nodes
+
+        self.perimeter: list[Node] = [] 
+        self.stores = []  
+        self.elevators = [] 
+        self.stairs = [] 
 
         # Generating floor grid #
         self.grid = [[Node(i, j, self.f_number) for j in range(self.columns)] for i in range(self.rows)]
@@ -36,6 +36,7 @@ class Floor():
         for j in range(self.columns):
             self.perimeter.append(self.grid[0][j])                  # top row
             self.perimeter.append(self.grid[self.rows - 1][j])      # bottom row
+
         for i in range(1, self.rows - 1):
             self.perimeter.append(self.grid[i][0])                  # left col
             self.perimeter.append(self.grid[i][self.columns - 1])   # right col
@@ -87,20 +88,18 @@ class Floor():
 
     def place_obstacles(self, count: int, all_stores: list[Store], start_node: Node):
 
-        # Gather viable candidate nodes
         viable_nodes = []
         for row in self.grid:
             for node in row:
                 if node.node_type == "generic" and node not in self.perimeter:
                     viable_nodes.append(node)
 
-        # Filter out nodes that block store/start entries
+        # Filter out nodes that block store/start/elevator/stair entries
         blocked_types = {"store","start","elevator","stairs"}
         viable_nodes = [
             node for node in viable_nodes
             if all(link.node.node_type not in blocked_types
                 for link in node.get_neighbors())
-            # if not is_blocking_entry(node, self.grid, lambda r, c: get_inward_direction(r, c, self.rows, self.columns))
         ]
 
         random.shuffle(viable_nodes)
@@ -114,14 +113,10 @@ class Floor():
             original = self.grid[r][c]
             obstacle = Obstacle(r, c, self.f_number)
             self.grid[r][c] = obstacle
-            # (tear out the horizontal links here, like you do in place_single_obstacle)
 
-            # NEW: 3D connectivity test
             if is_fully_connected_3d(start_node, all_stores):
                 placed += 1
             else:
-                # revert the neighbor‐links + grid cell
-                # (restore links exactly as you do now)
                 self.grid[r][c] = original
 
 
@@ -135,7 +130,7 @@ class Floor():
         obstacle = Obstacle(row, column, self.f_number)
         self.grid[row][column] = obstacle
 
-        # Remove this node from its neighbors' neighbor lists (outgoing edges)
+        # Remove node from neighbors neighbor lists (outgoing edges)
         for neighbor_link in original.get_neighbors():
             neighbor = neighbor_link.node
             reverse_dir = {
@@ -148,7 +143,7 @@ class Floor():
 
         # Check connectivity
         if is_fully_connected(start, stores, self.grid):
-            return True  # Obstacle placement is valid
+            return True
         else:
             # Revert obstacle placement and restore neighbor links
             for neighbor_link in original.get_neighbors():
@@ -161,7 +156,7 @@ class Floor():
                     neighbor.remove_neighbor(reverse_dir)
                     neighbor.add_neighbor(reverse_dir, original)
             self.grid[row][column] = original 
-            return False  # Obstacle placement is invalid
+            return False
 
 
     def print_floor_layout_with_obstacles(self, path_nodes=None):

@@ -3,7 +3,7 @@ from collections import defaultdict
 
 class DStarLitePlanner:
     def __init__(self):
-        self.km = 0                # heuristic correction
+        self.km = 0                # heuristic
         self.rhs = {}              # one-step lookahead values
         self.g   = {}              # current best path values
         self.U   = []              # priority queue of (key, node)
@@ -22,7 +22,7 @@ class DStarLitePlanner:
         self.g.clear()
         self.U.clear()
 
-        # goal’s one-step cost is 0; all others ∞
+        # goal’s one-step cost is 0; all others inf
         self.rhs[goal_node] = 0
         self.g[goal_node]   = float('inf')
         self.g[start_node]  = float('inf')
@@ -82,11 +82,11 @@ class DStarLitePlanner:
                     self.update_vertex(link.node)
 
     def plan(self, env, start_node, goal_node):
-        # 1) Reset
+        # Reset
         self.initialize(start_node, goal_node)
-        # 2) Build the full shortest‐path tree (static case)
+        # Build the full shortest‐path tree (static case)
         self.compute_shortest_path()
-        # 3) Walk it out
+        # Walk it out
         path = self.reconstruct_path(start_node, goal_node)
         return path, self.expanded
 

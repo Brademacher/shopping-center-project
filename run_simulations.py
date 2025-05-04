@@ -26,8 +26,8 @@ def make_mall(seed, **kwargs):
     random.seed(seed)
     m = Mall(
         num_floors=5,
-        rows=45,
-        columns=45,
+        rows=35,
+        columns=35,
         stores_per_floor=13,
         num_elevators=kwargs.get("num_elevators", 2),
         num_stairs=kwargs.get("num_stairs", 2),
@@ -74,22 +74,22 @@ def run_mgastar(mall):
 
 def run_dstarlite(mall):
     start = mall.floors[mall.agent_start_floor].start_node
-    goal  = next(s for s in mall.get_all_stores() if s.has_goal_item)
+    goals = mall.get_all_stores() 
 
-    # ← unpack four values, not three
     path, expanded, length, cost = DStarLiteAgent(
         DStarLitePlanner()
-    ).run(env=mall, start_node=start, goal_nodes=[goal])
+    ).run(env=mall,
+          start_node=start,
+          goal_nodes=goals)
 
     return {
         "algorithm":   "D* Lite",
         "expanded":    expanded,
-        "path_length": length,   # use the returned length
-        "path_cost":   cost,     # use the returned cost
+        "path_length": length,
+        "path_cost":   cost,
         "ends_at":     (path[-1].row, path[-1].column, path[-1].f_number)
                        if path else None
     }
-
 
 def main():
     SEEDS   = list(range(10))

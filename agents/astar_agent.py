@@ -4,7 +4,6 @@ from algorithms.astar import AStarPlanner
 class AStarAgent(Agent):
     def __init__(self, planner=None):
         super().__init__()
-        # allow passing in a custom planner or use the default
         self.planner = planner or AStarPlanner()
 
     def run(self, env, start_node, goal_nodes: list):
@@ -29,12 +28,13 @@ class AStarAgent(Agent):
             total_expanded += expanded
 
             if not path:
-                # (shouldn't happen if your 3D‐connectivity guard is solid)
+                # safety check
                 continue
 
             # accumulate the length and cost of this sub‐path
             sub_length = len(path)
             sub_cost = 0.0
+            
             # sum up the actual edge‐weights
             for a, b in zip(path, path[1:]):
                 for link in a.get_neighbors():
@@ -45,9 +45,7 @@ class AStarAgent(Agent):
             total_length += sub_length
             total_cost   += sub_cost
 
-            # if this store has the goal, stop and return the last path
             if getattr(target, "has_goal_item", False):
                 return path, total_expanded, total_length, total_cost
 
-        # never found it (shouldn't happen)
         return [], total_expanded, total_length, total_cost

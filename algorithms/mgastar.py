@@ -26,7 +26,6 @@ class MultiGoalAStarPlanner:
             visited_nodes.add(current)
 
             if self.is_goal_node(current, goal_nodes):
-                # Get the actual goal object (e.g., the Store instance)
                 matched_goal = next(
                     (g for g in goal_nodes if g.row == current.row and g.column == current.column and g.f_number == current.f_number),
                     current

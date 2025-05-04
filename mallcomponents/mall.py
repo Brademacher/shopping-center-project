@@ -168,16 +168,15 @@ class Mall:
     def populate_floors(self):
         # grab the one start node (on whatever floor the agent began)
         start = self.floors[self.agent_start_floor].start_node
-        # grab _all_ of the stores on _all_ floors
+
+        # grab all of the stores on all floors
         all_stores = self.get_all_stores()
 
         for floor in self.floors:
-            # place your stores as before
+            # place stores as before
             store_count = self.get_store_placement_count(floor)
             floor.place_stores(count=store_count)
 
-            # now place obstacles on every floor (or only on the start floor,
-            # whichever you prefer), but pass in the full 3D context:
             obstacle_count = self.get_obstacle_placement_count(floor)
             floor.place_obstacles(
                 count=obstacle_count,
@@ -186,9 +185,7 @@ class Mall:
             )
 
     def run_mall_setup(self):
-        """
-        Builds the entire mall layout, including floors, stores, and obstacles.
-        """
+        """ Builds the entire mall layout, including floors, stores, and obstacles."""
         self.build_base_floors()
         self.place_agent()
         self.place_elevators()
@@ -206,26 +203,8 @@ class Mall:
 
 
     def print_mall_layout(self):
-        """
-        Prints the layout of each floor in the mall, including obstacles,
-        stores, and agent start (but no path).
-        """
+        """ Prints the layout of each floor in the mall, including obstacles, stores, and agent start (but no path)."""
         print("\n=== Mall Layout ===\n")
         for floor in self.floors:
             print(f"\n--- Floor {floor.f_number} ---")
             floor.print_floor_layout_with_obstacles()
-
-
-
-### FOR TESTING PURPOSES ONLY ###
-if __name__ == "__main__":
-    # Create a mall with either store count or density (can mix or swap)
-    mall = Mall(
-        num_floors=4,
-        rows=20,
-        columns=20,
-        num_elevators= 10
-    )
-
-    mall.run_mall_setup()
-    mall.print_mall_layout()

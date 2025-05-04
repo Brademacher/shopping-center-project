@@ -66,7 +66,7 @@ def is_fully_connected(start_node, store_nodes, grid):
                 visited.add(key)
                 queue.append(neighbor)
 
-    # Final check: make sure each store's key is in visited
+    # Final check: make sure each store key is in visited
     for store in store_nodes:
         key = (store.row, store.column, store.f_number)
         if key not in visited:
@@ -138,7 +138,6 @@ def lock_stair_neighbors(stair_node: Node, allowed_dirs: set[str]) -> None:
     Prune away any neighbor link on stair_node whose direction
     isn't in allowed_dirs. Also remove the corresponding back‐link.
     """
-    # work off a copy so we can mutate the real list
     for link in stair_node.get_neighbors()[:]:
         direction = link.direction
         if direction not in allowed_dirs:
