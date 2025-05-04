@@ -1,10 +1,11 @@
 from interfaces.agents import Agent
+from algorithms.dstarlite import DStarLitePlanner
 from utils.path       import compute_path_cost
 
 class DStarLiteAgent(Agent):
-    def __init__(self, planner):
+    def __init__(self, planner=None):
         super().__init__()
-        self.planner = planner
+        self.planner = planner or DStarLitePlanner()
 
     def run(self, env, start_node, goal_nodes: list):
 

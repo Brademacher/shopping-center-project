@@ -1,9 +1,10 @@
 from interfaces.agents import Agent
+from algorithms.mgastar import MultiGoalAStarPlanner
 
 class MultiGoalAStarAgent(Agent):
-    def __init__(self, planner):
+    def __init__(self, planner=None):
         super().__init__()
-        self.planner = planner
+        self.planner = planner or MultiGoalAStarPlanner()
 
     def run(self, env, start_node, goal_nodes: list):
         """
