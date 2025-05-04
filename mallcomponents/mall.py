@@ -1,6 +1,6 @@
 import random
 from mallcomponents.floor import Floor
-from mallcomponents.node_connectivity import connect_nodes, is_corner, get_inward_direction
+from mallcomponents.node_connectivity import connect_nodes, is_corner, lock_stair_neighbors
 from nodecomponents.elevators import Elevator
 from nodecomponents.stairs import Stairs
 from nodecomponents.goal_logic import assign_goal_item_to_store
@@ -134,6 +134,71 @@ class Mall:
             return int(perimeter_size * 0.05)
         # Default to 5% of the perimeter if no specific count or density is provided
 
+    def place_stairs(self):
+        """ Place Stairs in interior generic nodes on each floor. """
+        for f in range(self.num_floors - 1):
+            lower_floor = self.floors[f]
+            upper_floor = self.floors[f + 1]
+            count = self.get_stairs_placement_count(lower_floor)
+
+            valid_nodes = [
+                (row, column)
+                for row in range(2, lower_floor.rows - 2)
+                for column in range(2, lower_floor.columns - 2)
+                if (lower_floor.grid[row][column].node_type == "generic"
+                    and upper_floor.grid[row][column + 1].node_type == "generic")
+            ]
+            random.shuffle(valid_nodes)
+
+            for row, column in valid_nodes[:count]:
+                # Place lower stairs
+                lower = Stairs(row=row, column=column, f_number=lower_floor.f_number)
+                lower_floor.grid[row][column] = lower
+                lower_floor.stairs.append(lower)
+
+                # Place upper stairs
+                upper = Stairs(row=row, column=column + 1, f_number=upper_floor.f_number)
+                upper_floor.grid[row][column + 1] = upper
+                upper_floor.stairs.append(upper)
+
+        # Connect stairs on each floor to their neighbors
+        for floor in self.floors:
+            connect_nodes(floor.grid, floor.rows, floor.columns)
+            floor.build_perimeter_list()
+
+        # Add vertical neighbors for each stair exactly once:
+        # For each pair of floors, link the stairs on the lower floor to the stairs on the upper floor
+        for f in range(self.num_floors - 1):
+            lower = self.floors[f]
+            upper = self.floors[f+1]
+            for low in lower.stairs:
+                r, c = low.row, low.column
+
+                # find its matching upper stair
+                # is this actually a lower‐end stair?
+                # check that on floor f+1 at (r,c+1) we put a Stairs
+                if (c+1 < upper.columns
+                    and isinstance(upper.grid[r][c+1], Stairs)):
+                    up = upper.grid[r][c+1]
+                    low.add_neighbor("up_stairs",   up)
+                    up.add_neighbor("down_stairs",  low)
+
+        ## Add horizontal neighbors for each stair on the same floor
+        # For each floor, link the stairs to their neighbors
+        for floor_idx, floor in enumerate(self.floors):
+            for stair in floor.stairs:
+
+                r, c = stair.row, stair.column
+
+                if any(l.direction=="up_stairs" for l in stair.get_neighbors()):
+                    # lower stair: prune, then inspect its right neighbor
+                    lock_stair_neighbors(stair, {"left", "up_stairs"})
+
+                else:
+                    # upper stair: prune, then inspect its left neighbor
+                    lock_stair_neighbors(stair, {"right", "down_stairs"})
+                    
+
     def get_all_stores(self):
         """Returns a list of all Store nodes across all floors."""
         return [store for floor in self.floors for store in floor.stores]
@@ -182,6 +247,7 @@ class Mall:
         self.build_base_floors()
         self.place_agent()
         self.place_elevators()
+        self.place_stairs()
         self.populate_floors()
         assign_goal_item_to_store(self.get_all_stores())
 
@@ -201,9 +267,9 @@ class Mall:
 if __name__ == "__main__":
     # Create a mall with either store count or density (can mix or swap)
     mall = Mall(
-        num_floors=3,
-        rows=10,
-        columns=12,
+        num_floors=4,
+        rows=20,
+        columns=20,
         num_elevators= 10
     )
 

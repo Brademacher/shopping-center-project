@@ -1,6 +1,12 @@
 from collections import deque
 from interfaces.nodes import Node
 
+OPP_DIR = {
+    "up": "down", "down": "up",
+    "left": "right", "right": "left",
+    "up_stairs": "down_stairs", "down_stairs": "up_stairs"
+}
+
 def connect_nodes(grid, rows, columns):
     for i in range(rows):
         for j in range(columns):
@@ -105,3 +111,16 @@ def is_corner(row, col, rows, columns):
         (row == rows - 1 and col == 0) or
         (row == rows - 1 and col == columns - 1)
     )
+
+def lock_stair_neighbors(stair_node: Node, allowed_dirs: set[str]) -> None:
+    """
+    Prune away any neighbor link on stair_node whose direction
+    isn't in allowed_dirs. Also remove the corresponding back‐link.
+    """
+    # work off a copy so we can mutate the real list
+    for link in stair_node.get_neighbors()[:]:
+        direction = link.direction
+        if direction not in allowed_dirs:
+            nbr = link.node
+            stair_node.remove_neighbor(direction)
+            nbr.remove_neighbor(OPP_DIR[direction])

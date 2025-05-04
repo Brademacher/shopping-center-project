@@ -185,6 +185,8 @@ class Floor():
                     row_str += "[   ]"
                 elif node.node_type == "elevator":
                     row_str += "[ E ]"
+                elif node.node_type == "stairs":
+                    row_str += "[ ^ ]"
                 else:
                     row_str += "[ ? ]"
             print(row_str)
