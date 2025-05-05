@@ -180,18 +180,18 @@ class Floor():
                 elif node.node_type == "store":
                     row_str += "[ S ]"
                 elif node.node_type == "obstacle":
-                    row_str += "[■■■]"
+                    row_str += "[ X ]"
                 elif node.node_type == "generic":
                     row_str += "[   ]"
                 elif node.node_type == "elevator":
-                    row_str += "[ ↕ ]"
+                    row_str += "[ E ]"
                 elif node.node_type == "stairs":
                     # Check for directional stair neighbors
                     directions = {link.direction for link in node.get_neighbors()}
                     if "up_stairs" in directions:
-                        row_str += "[ ↑ ]"  # Only goes up
+                        row_str += "[ ^ ]"  # Only goes up
                     elif "down_stairs" in directions:
-                        row_str += "[ ↓ ]"  # Only goes down
+                        row_str += "[ v ]"  # Only goes down
                 else:
                     row_str += "[ ? ]"
             lines.append(row_str)

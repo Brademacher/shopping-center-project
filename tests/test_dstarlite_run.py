@@ -29,7 +29,7 @@ def main():
     print("Initial Mall Layout:")
     for floor in mall.floors:
         print(f"\n--- Floor {floor.f_number} ---")
-        floor.print_floor_layout_with_obstacles()
+        floor.print_floor_layout()
 
     # 5) run D* Lite to that single goal
     agent   = DStarLiteAgent(planner=DStarLitePlanner())
@@ -43,7 +43,7 @@ def main():
     for floor in mall.floors:
         nodes_on = [n for n in path if n.f_number == floor.f_number]
         print(f"\n--- Floor {floor.f_number} (with path) ---")
-        floor.print_floor_layout_with_obstacles(path_nodes=nodes_on)
+        floor.print_floor_layout(path_nodes=nodes_on)
 
     # 7) summary
     print("\nD* Lite Agent Results:")

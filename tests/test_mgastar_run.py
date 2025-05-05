@@ -26,7 +26,7 @@ def main():
 
     # 4) run multi‐goal A*
     agent = MultiGoalAStarAgent(planner=MultiGoalAStarPlanner())
-    path, expansions, reached_goal = agent.run(
+    path, expansions, goal_node, reached_goal = agent.run(
         env=mall,
         start_node=start_node,
         goal_nodes=goal_nodes
@@ -36,7 +36,7 @@ def main():
     for floor in mall.floors:
         nodes_on = [n for n in (path or []) if n.f_number == floor.f_number]
         print(f"\n--- Floor {floor.f_number} ---")
-        floor.print_floor_layout_with_obstacles(path_nodes=nodes_on)
+        floor.print_floor_layout(path_nodes=nodes_on)
 
     # 6) summary
     print("\nMulti-Goal A* Agent Results:")
