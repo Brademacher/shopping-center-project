@@ -5,7 +5,6 @@ class MultiGoalAStarPlanner:
         pass
 
     def plan(self, env, start_node, goal_nodes):
-        import heapq
 
         open_set = []
         heapq.heappush(open_set, (0, start_node))
@@ -27,7 +26,6 @@ class MultiGoalAStarPlanner:
             visited_nodes.add(current)
 
             if self.is_goal_node(current, goal_nodes):
-                # Get the actual goal object (e.g., the Store instance)
                 matched_goal = next(
                     (g for g in goal_nodes if g.row == current.row and g.column == current.column and g.f_number == current.f_number),
                     current
@@ -38,7 +36,8 @@ class MultiGoalAStarPlanner:
                     reached_goals[matched_goal] = {
                         "goal": matched_goal,
                         "path": path,
-                        "cost": g_score[current]
+                        "cost": g_score[current],
+                        "expanded": expanded
                     }
 
             for neighbor_link in current.get_neighbors():

@@ -5,6 +5,41 @@ from nodecomponents.elevators import Elevator
 from nodecomponents.stairs import Stairs
 from nodecomponents.goal_logic import assign_goal_item_to_store
 
+############################       For Printing Purposes      ###################################
+from PIL import Image, ImageDraw, ImageFont
+
+def save_layout_as_png(text: str, filename: str = "mall_layout.png", font_size: int = 16):
+    try:
+        font = ImageFont.truetype("cour.ttf", font_size)  # Windows
+    except:
+        font = ImageFont.load_default()
+        print("Warning: fallback font may not be truly monospaced.")
+
+    lines = text.split('\n')
+    padding = 20
+
+    # Estimate char size using getbbox
+    bbox = font.getbbox("M")  # monospaced sample character
+    char_width = bbox[2] - bbox[0]
+    char_height = bbox[3] - bbox[1]
+
+    max_line_length = max(len(line) for line in lines)
+
+    img_width = padding * 2 + char_width * max_line_length
+    img_height = padding * 3 + (5 + char_height) * len(lines) + 10
+
+    image = Image.new("RGB", (img_width, img_height), "white")
+    draw = ImageDraw.Draw(image)
+
+    for i, line in enumerate(lines):
+        spacing = 5
+        y = padding + i * (char_height + spacing)
+        draw.text((padding, y), line, font=font, fill="black")
+
+    image.save(filename)
+    print(f"✅ Layout image saved: {filename}")
+##############################################################################################
+
 class Mall:
     def __init__(self, num_floors: int, rows: int, columns: int, 
                 stores_per_floor: int = 0, obstacles_per_floor: int = 0,
@@ -166,20 +201,26 @@ class Mall:
         # Default to 25% of the viable floor nodes if no specific count or density is provided
 
     def populate_floors(self):
-        globbal_start = self.floors[self.agent_start_floor].start_node
-        global_stores = self.get_all_stores()
+        # grab the one start node (on whatever floor the agent began)
+        start = self.floors[self.agent_start_floor].start_node
+
+        # grab all of the stores on all floors
+        all_stores = self.get_all_stores()
 
         for floor in self.floors:
+            # place stores as before
             store_count = self.get_store_placement_count(floor)
             floor.place_stores(count=store_count)
 
             obstacle_count = self.get_obstacle_placement_count(floor)
-            floor.place_obstacles(count=obstacle_count, start=globbal_start, stores=global_stores)
+            floor.place_obstacles(
+                count=obstacle_count,
+                all_stores=all_stores,
+                start_node=start
+            )
 
     def run_mall_setup(self):
-        """
-        Builds the entire mall layout, including floors, stores, and obstacles.
-        """
+        """ Builds the entire mall layout, including floors, stores, and obstacles."""
         self.build_base_floors()
         self.place_agent()
         self.place_elevators()
@@ -195,21 +236,51 @@ class Mall:
         add_elevator_vertical_neighbors(self.floors)
         update_stair_neighbors(self.floors)
 
+    def print_mall_layout(self, to_file = None):
 
+        center_width = self.columns * 5
+        lines = []
 
-
-
-    def print_mall_layout(self):
-        """
-        Prints the layout of each floor in the mall, including obstacles,
-        stores, and agent start (but no path).
-        """
-        print("\n=== Mall Layout ===\n")
+        lines.append(centered("=== Mall Layout ===", center_width))
         for floor in self.floors:
-            print(f"\n--- Floor {floor.f_number} ---")
-            floor.print_floor_layout_with_obstacles()
+            lines.append("\n" + centered(f"--- Floor {floor.f_number + 1} ---", center_width))
+            lines.extend(floor.print_floor_layout())
 
+        # Add legend
+        lines.append("\n" + "-" * 72)
+        lines.append("Key".center(72))
+        lines.append(f"{'[ A ]':<10} {'Agent Start':<15} {'[ E ]':<10} {'Elevator':<15}")
+        lines.append(f"{'[ ^ ]':<10} {'Stairs Up':<15} {'[ v ]':<10} {'Stairs Down':<15}")
+        lines.append(f"{'[ S ]':<10} {'Store':<15} {'[ G ]':<10} {'Goal Store':<15}")
+        lines.append(f"{'[ X ]':<10} {'Obstacle':<15} {'[   ]':<10} {'Traversal Space':<15}")
+        lines.append("-" * 72 + "\n")
 
+        output = "\n".join(lines)
+
+        if to_file:
+            with open(to_file, 'w', encoding='utf-8') as f:
+                f.write(output)
+            save_layout_as_png(output, filename=to_file.replace(".txt", ".png"))
+        else:
+            print(output)
+
+        print()
+        print(centered("=== Mall Layout ===", center_width))
+        for floor in self.floors:
+            print("\n" + centered(f"--- Floor {floor.f_number + 1} ---", center_width))
+            floor.print_floor_layout()
+        
+        # Legend/Key
+        print("\n" + "-" * 72)
+        print("Key".center(72))
+        print(f"{'[ A ]':<10} {'Agent Start':<15} {'[ ↕ ]':<10} {'Elevator':<15}")
+        print(f"{'[ ↑ ]':<10} {'Stairs Up':<15} {'[ ↓ ]':<10} {'Stairs Down':<15}")
+        print(f"{'[ S ]':<10} {'Store':<15} {'[ G ]':<10} {'Goal Store':<15}")
+        print(f"{'[■■■]':<10} {'Obstacle':<15} {'[   ]':<10} {'Traversal Space':<15}")
+        print("-" * 72 + "\n")
+
+def centered(text, width):
+    return text.center(width)
 
 ### FOR TESTING PURPOSES ONLY ###
 if __name__ == "__main__":
@@ -218,8 +289,9 @@ if __name__ == "__main__":
         num_floors=4,
         rows=20,
         columns=20,
-        num_elevators= 10
+        num_elevators= 4
     )
 
     mall.run_mall_setup()
     mall.print_mall_layout()
+    mall.print_mall_layout(to_file="mall_layout.txt")

@@ -1,11 +1,10 @@
 import random
 from collections import deque
-
 from interfaces.nodes import Node
 from mallcomponents.node_connectivity import * # type: ignore
-from nodecomponents.goal_logic import assign_goal_item_to_store
 from nodecomponents.stores import Store
 from nodecomponents.static_obstacles import Obstacle
+from mallcomponents.node_connectivity import is_fully_connected_3d
 
 class Floor():
 
@@ -15,11 +14,11 @@ class Floor():
         self.f_number = f_number
         self.start_node = None
 
-        # List of stores on the floor #
-        self.perimeter: list[Node] = [] # List to hold perimeter nodes
-        self.stores = []  # List to hold store nodes
-        self.elevators = [] # List to hold elevator nodes
-        self.stairs = [] # List to hold stairs nodes
+
+        self.perimeter: list[Node] = [] 
+        self.stores = []  
+        self.elevators = [] 
+        self.stairs = [] 
 
         # Generating floor grid #
         self.grid = [[Node(i, j, self.f_number) for j in range(self.columns)] for i in range(self.rows)]
@@ -37,6 +36,7 @@ class Floor():
         for j in range(self.columns):
             self.perimeter.append(self.grid[0][j])                  # top row
             self.perimeter.append(self.grid[self.rows - 1][j])      # bottom row
+
         for i in range(1, self.rows - 1):
             self.perimeter.append(self.grid[i][0])                  # left col
             self.perimeter.append(self.grid[i][self.columns - 1])   # right col
@@ -83,32 +83,23 @@ class Floor():
         self.start_node = valid_spots[0]
         self.start_node.node_type = "start"
         add_inward_neighbor(self.grid, self.start_node, self.rows, self.columns)
-        print(f"Agent start node set to ({self.start_node.row}, {self.start_node.column})")
+        # print(f"Agent start node set to ({self.start_node.row}, {self.start_node.column})")
 
 
-    def place_obstacles(self, count: int, start: Node, stores: list[Store]):
-        """
-        Randomly places static obstacles that block movement.
-        Constraints:
-        - Cannot be on the perimeter
-        - Cannot be directly in front of a store or start
-        - Must not fully block access to all goals or the agent
-        - Must not block the path to the elevator or stairs
-        """
-        # Gather viable candidate nodes
+    def place_obstacles(self, count: int, all_stores: list[Store], start_node: Node):
+
         viable_nodes = []
         for row in self.grid:
             for node in row:
                 if node.node_type == "generic" and node not in self.perimeter:
                     viable_nodes.append(node)
 
-        # Filter out nodes that block store/start entries
+        # Filter out nodes that block store/start/elevator/stair entries
         blocked_types = {"store","start","elevator","stairs"}
         viable_nodes = [
             node for node in viable_nodes
             if all(link.node.node_type not in blocked_types
                 for link in node.get_neighbors())
-            # if not is_blocking_entry(node, self.grid, lambda r, c: get_inward_direction(r, c, self.rows, self.columns))
         ]
 
         random.shuffle(viable_nodes)
@@ -117,8 +108,17 @@ class Floor():
         for node in viable_nodes:
             if placed >= count:
                 break
-            if self.place_single_obstacle(node.row, node.column, start, stores):
+            r, c = node.row, node.column
+
+            original = self.grid[r][c]
+            obstacle = Obstacle(r, c, self.f_number)
+            self.grid[r][c] = obstacle
+
+            if is_fully_connected_3d(start_node, all_stores):
                 placed += 1
+            else:
+                self.grid[r][c] = original
+
 
         return placed
 
@@ -130,7 +130,7 @@ class Floor():
         obstacle = Obstacle(row, column, self.f_number)
         self.grid[row][column] = obstacle
 
-        # Remove this node from its neighbors' neighbor lists (outgoing edges)
+        # Remove node from neighbors neighbor lists (outgoing edges)
         for neighbor_link in original.get_neighbors():
             neighbor = neighbor_link.node
             reverse_dir = {
@@ -143,7 +143,7 @@ class Floor():
 
         # Check connectivity
         if is_fully_connected(start, stores, self.grid):
-            return True  # Obstacle placement is valid
+            return True
         else:
             # Revert obstacle placement and restore neighbor links
             for neighbor_link in original.get_neighbors():
@@ -156,17 +156,17 @@ class Floor():
                     neighbor.remove_neighbor(reverse_dir)
                     neighbor.add_neighbor(reverse_dir, original)
             self.grid[row][column] = original 
-            return False  # Obstacle placement is invalid
+            return False
 
 
-    def print_floor_layout_with_obstacles(self, path_nodes=None):
+    def print_floor_layout(self, path_nodes=None):
         """
         Prints the floor with agent path included.
         path_nodes: optional list of nodes the agent path includes.
         """
         path_coords = set((n.row, n.column, n.f_number) for n in path_nodes) if path_nodes else set()
+        lines = []
 
-        print("\nFloor Layout with Obstacles:\n")
         for row in self.grid:
             row_str = ""
             for node in row:
@@ -180,33 +180,20 @@ class Floor():
                 elif node.node_type == "store":
                     row_str += "[ S ]"
                 elif node.node_type == "obstacle":
-                    row_str += "[OOO]"
+                    row_str += "[ X ]"
                 elif node.node_type == "generic":
                     row_str += "[   ]"
                 elif node.node_type == "elevator":
                     row_str += "[ E ]"
                 elif node.node_type == "stairs":
-                    row_str += "[ ^ ]"
+                    # Check for directional stair neighbors
+                    directions = {link.direction for link in node.get_neighbors()}
+                    if "up_stairs" in directions:
+                        row_str += "[ ^ ]"  # Only goes up
+                    elif "down_stairs" in directions:
+                        row_str += "[ v ]"  # Only goes down
                 else:
                     row_str += "[ ? ]"
+            lines.append(row_str)
             print(row_str)
-
-
-# # TESTING PURPOSES ONLY #
-# if __name__ == "__main__":
-#     floor = Floor(rows=10, columns=12, f_number=0)
-
-#     floor.place_agent_start()
-#     floor.place_stores(count=6)
-#     assign_goal_item_to_store(floor.stores)
-#     floor.place_obstacles(count=10)
-
-#     floor.print_floor_layout_with_obstacles()
-
-#     print("\nStore Summary:")
-#     print(f"\nDEBUG: Store count = {len(floor.stores)}")
-#     store_names = [s.name for s in floor.stores]
-#     print(f"DEBUG: Unique store names = {set(store_names)}")
-#     for store in floor.stores:
-#         status = "GOAL ITEM" if store.has_goal_item else "empty"
-#         print(f"- {store.name} at ({store.row},{store.column}) → {status}")
+        return lines

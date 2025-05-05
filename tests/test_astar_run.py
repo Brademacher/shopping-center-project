@@ -25,7 +25,7 @@ def main():
 
     # 5) run your existing A* agent code
     agent = AStarAgent(planner=AStarPlanner())
-    path, expanded = agent.run(
+    path, expanded, total_length, total_cost = agent.run(
         env=mall,           # your agent only really cares about start_node & neighbors
         start_node=start_node,
         goal_nodes=goal_nodes
@@ -37,7 +37,7 @@ def main():
         nodes_on_floor = [n for n in path if n.f_number == floor.f_number]
 
         print(f"\n--- Floor {floor.f_number} ---")
-        floor.print_floor_layout_with_obstacles(path_nodes=nodes_on_floor)
+        floor.print_floor_layout(path_nodes=nodes_on_floor)
 
     # 7) final summary
     print("\nA* Agent Results:")
